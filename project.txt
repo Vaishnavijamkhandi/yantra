@@ -1,0 +1,915 @@
+You need a master development prompt that you can give to an AI coding agent (Cursor, Claude Code, ChatGPT Work, or another coding assistant) to take the existing CyberSentra project from its current prototype stage to a complete, tested and deployed application.
+
+The prompt below covers two things:
+
+1. What has already been implemented in the ZIP I created.
+2. What remains to be implemented, including the Digital Twin, dependency analysis, attack simulation, ML integration, security, testing and deployment.
+
+One important distinction: the current project is a functional starting codebase, not a production-ready cybersecurity platform. The prompt explicitly instructs the coding agent to inspect and improve the existing code instead of pretending everything is already finished.
+
+# Master prompt — CyberSentra: End-to-end development and deployment
+
+Copy the entire prompt below and provide it along with `cyber-risk-platform.zip` to your coding agent.
+
+# MASTER PROJECT PROMPT: CYBERSENTRA
+
+## Complete Development, Integration, Testing and Deployment of a Critical Infrastructure Cyber-Risk Assessment Platform
+
+Act as a senior full-stack engineer, cybersecurity architect, AI/ML engineer, database architect and DevOps engineer.
+
+Your task is to take the existing `cyber-risk-platform` project and transform it into a complete, functional, professionally designed and deployable cybersecurity risk assessment platform.
+
+Do not just provide suggestions, tutorials or sample code. Work directly on the existing project, implement the missing functionality, fix existing issues, test everything and prepare it for deployment.
+
+**The final objective is a working end-to-end application that can be demonstrated to judges, cybersecurity professionals and technical evaluators.**
+
+---
+
+# 1. PROJECT OVERVIEW
+
+Project name: CyberSentra
+
+Project domain: Cybersecurity / Critical Infrastructure Protection
+
+Target environment: Hospital infrastructure.
+
+The application should help security administrators understand their infrastructure, identify known vulnerabilities, assess risk, understand infrastructure dependencies and prioritise remediation.
+
+The platform should eventually provide a digital representation of hospital infrastructure and simulate how a potential compromise of one asset could affect connected systems.
+
+The platform must be explainable. Users should understand why an asset is considered risky and what actions they should take.
+
+Do not make unsupported claims that the platform can prevent all cyberattacks or predict attacks with certainty.
+
+# 2. EXISTING IMPLEMENTATION
+
+First, inspect the supplied ZIP and understand the existing implementation.
+
+The current project contains the following:
+
+## Frontend
+
+- React
+- TypeScript
+- Vite
+- Recharts
+- Lucide React
+- Dark cybersecurity dashboard interface.
+- Asset inventory interface.
+- Asset registration form.
+- CSV import interface.
+- Risk distribution visualisation.
+- Risk ranking table.
+- Asset detail drawer.
+- Vulnerability findings interface.
+- Assessment action buttons.
+
+## Backend
+
+- Python
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- SQLite by default.
+- PostgreSQL support.
+- REST API architecture.
+
+## Database models
+
+- Assets.
+- Asset software.
+- Vulnerabilities.
+- Asset-vulnerability relationships.
+- Risk assessment history.
+
+## Implemented API functionality
+
+- Create, list, update and delete assets.
+- Import assets through CSV.
+- Retrieve asset details.
+- Assess software against NVD vulnerability records.
+- Retrieve vulnerability findings.
+- Calculate risk scores.
+- Calculate risk for all assets.
+- Retrieve risk ranking.
+- Retrieve dashboard summary.
+- Retrieve asset risk history.
+
+## Existing services
+
+- Asset management service.
+- NVD API integration.
+- Vulnerability matching service.
+- Risk scoring engine.
+- Risk explanation and remediation recommendation module.
+
+## ML component
+
+An independent Random Forest training script is available at:
+
+`backend/app/risk_engine/ml_train.py`
+
+It is not integrated into the application.
+
+## Supporting files
+
+- Hospital asset dataset.
+- Historical ML training CSV template.
+- Architecture documentation.
+- Database schema documentation.
+- Alembic initial migration.
+- Basic backend tests.
+
+Important: These are existing code components, not proof that every feature is fully validated. Inspect the code, run it and fix any implementation defects before building additional functionality.
+
+# 3. REQUIRED TECHNOLOGY STACK
+
+Keep the existing stack unless there is a strong technical reason to change it.
+
+Frontend:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS or an equivalent maintainable styling system.
+- Recharts.
+- Lucide React.
+- React Router.
+- TanStack Query for server-state management.
+
+Backend:
+
+- Python.
+- FastAPI.
+- SQLAlchemy.
+- Pydantic.
+- Alembic.
+- PostgreSQL.
+
+Cybersecurity data:
+
+- NVD CVE API 2.0.
+- CVSS severity information.
+- CPE affected-product information.
+- CISA Known Exploited Vulnerabilities catalogue, where appropriate.
+
+ML:
+
+- Python.
+- Pandas.
+- NumPy.
+- Scikit-learn.
+- Joblib.
+
+Deployment:
+
+- Docker.
+- Docker Compose.
+- PostgreSQL.
+- Nginx or an appropriate production web server.
+- GitHub Actions for CI/CD.
+
+Use environment variables for credentials, API keys and configuration.
+
+# 4. PHASE 1 — ASSET INVENTORY MANAGEMENT
+
+Improve the existing asset management implementation.
+
+Required functionality:
+
+1. Register infrastructure assets.
+2. Edit asset information.
+3. Delete assets with confirmation.
+4. View all assets.
+5. Search assets.
+6. Filter assets by type, department, criticality and exposure.
+7. Import assets through CSV.
+8. Validate imported data.
+9. Support multiple software products per asset.
+10. Store operating system and software versions.
+11. Track asset criticality.
+12. Track network exposure.
+13. Track department and environment.
+
+Asset categories should include:
+
+- Servers.
+- Databases.
+- Workstations.
+- Medical devices.
+- IoT devices.
+- Network devices.
+- Gateways.
+- Cloud infrastructure.
+
+Each asset should have a unique identifier.
+
+Add proper input validation and error handling.
+
+Do not implement unauthorised network scanning. If automatic discovery is added later, it must operate only on explicitly authorised infrastructure.
+
+# 5. PHASE 2 — VULNERABILITY ASSESSMENT ENGINE
+
+This is one of the most technically important components.
+
+Improve the current NVD integration and matching logic.
+
+Required functionality:
+
+1. Retrieve CVE information from NVD.
+2. Store retrieved CVE records in PostgreSQL.
+3. Extract CVE identifiers.
+4. Extract vulnerability descriptions.
+5. Extract CVSS scores.
+6. Extract severity levels.
+7. Extract affected vendor and product information.
+8. Extract CPE identifiers.
+9. Extract affected-version ranges.
+10. Identify available exploitability information.
+11. Cache retrieved records.
+12. Handle API failures and rate limits.
+13. Support synchronisation without unnecessary repeated API requests.
+
+Implement reliable software-to-vulnerability matching.
+
+The matching engine must consider:
+
+- Vendor identity.
+- Product identity.
+- Software version.
+- Affected-version ranges.
+- CPE criteria.
+- Available configuration conditions.
+
+Support three distinct assessment outcomes:
+
+- Confirmed match.
+- Needs verification.
+- Not affected.
+
+Never treat a keyword search result as proof of vulnerability applicability.
+
+Do not assume that a missing CVE match means an asset is secure.
+
+Add vulnerability assessment history.
+
+Provide evidence explaining why a particular CVE was matched to an asset.
+
+Where appropriate, enrich results with CISA KEV information.
+
+# 6. PHASE 3 — EXPLAINABLE RISK SCORING ENGINE
+
+Improve the existing rule-based scoring engine.
+
+Initially, use a deterministic, transparent risk-scoring model.
+
+Consider the following factors:
+
+1. Vulnerability severity.
+2. Exploitability.
+3. Network exposure.
+4. Asset criticality.
+5. Operational impact, where available.
+
+Make scoring weights configurable.
+
+Avoid double-counting factors already represented within CVSS.
+
+Each asset should receive:
+
+- Risk score from 0–100.
+- Risk category.
+- Contributing factors.
+- Assessment timestamp.
+- Evidence coverage.
+- Explanation.
+- Remediation recommendations.
+
+Risk categories:
+
+- Critical.
+- High.
+- Medium.
+- Low.
+
+The system must explain why an asset received its score.
+
+Handle incomplete information explicitly.
+
+Do not represent a weighted heuristic as an ML prediction or as a probability of compromise.
+
+# 7. PHASE 4 — ADVANCED RISK PRIORITISATION DASHBOARD
+
+Upgrade the existing dashboard into a professional security operations interface.
+
+Required dashboard components:
+
+## Overview cards
+
+- Total assets.
+- Assets with confirmed vulnerability matches.
+- Critical-risk assets.
+- High-risk assets.
+- Medium-risk assets.
+- Low-risk assets.
+- Pending verification findings.
+- Average assessed risk.
+
+## Visualisations
+
+- Risk distribution chart.
+- Vulnerability severity distribution.
+- Asset criticality distribution.
+- Risk trend over time.
+- Department-wise risk comparison.
+
+## Asset prioritisation
+
+Provide a dynamically sorted table showing:
+
+- Asset name.
+- Asset type.
+- Criticality.
+- Exposure.
+- Vulnerability count.
+- Risk score.
+- Risk level.
+- Assessment status.
+
+Allow filtering, sorting and searching.
+
+## Asset details
+
+On clicking an asset, show:
+
+- Asset information.
+- Installed software.
+- Vulnerabilities.
+- CVE identifiers.
+- CVSS scores.
+- Match evidence.
+- Risk factors.
+- Risk history.
+- Recommended remediation.
+
+Use real backend data, not hardcoded dashboard numbers.
+
+Add loading, error and empty states.
+
+# 8. PHASE 5 — DIGITAL TWIN OF HOSPITAL INFRASTRUCTURE
+
+This is a major feature and an important differentiator.
+
+Create a digital representation of the hospital's IT infrastructure.
+
+Represent each asset as a node.
+
+Represent relationships between assets as edges.
+
+Example:
+
+Hospital Network\
+|\
+├── Network Core Router\
+\|       |\
+\|       ├── Patient Management Server\
+\|       |       |\
+\|       |       └── Hospital Database\
+\|       |\
+\|       ├── Pharmacy Application Server\
+\|       |\
+\|       └── ICU Monitoring Gateway\
+|\
+└── Backup Server
+
+Use a suitable graph visualisation library such as React Flow.
+
+Required functionality:
+
+1. Display infrastructure nodes.
+2. Display connections between assets.
+3. Add new assets to the graph.
+4. Connect assets.
+5. Edit relationships.
+6. Delete relationships.
+7. Display asset information when clicking a node.
+8. Display risk level using node styling.
+9. Highlight critical infrastructure.
+10. Show dependency paths.
+11. Filter the graph by asset type and risk level.
+
+Create a database model for asset dependencies.
+
+Relationships should support types such as:
+
+- Depends on.
+- Communicates with.
+- Connected to.
+- Provides service to.
+- Shares data with.
+
+Do not invent dependencies automatically. Allow manual configuration and clearly identify inferred relationships if you introduce inference later.
+
+# 9. PHASE 6 — ATTACK PATH AND CASCADING IMPACT SIMULATION
+
+Implement a controlled, graph-based what-if simulation.
+
+The purpose is to understand how compromise of one asset could affect connected infrastructure.
+
+This is a defensive simulation, not an exploit execution engine.
+
+Example:
+
+Suppose the Patient Management Server is selected as the initial compromised asset.
+
+The application should:
+
+1. Identify its directly connected dependencies.
+2. Traverse relevant relationships.
+3. Identify downstream assets that may be affected.
+4. Calculate potential operational impact.
+5. Highlight affected paths.
+6. Display the number of potentially impacted assets.
+7. Show the criticality of affected assets.
+8. Display a simulation summary.
+
+Add a visual attack-path representation.
+
+For example:
+
+Initial asset → Connected gateway → Patient database → Hospital service
+
+Use graph traversal algorithms such as BFS or DFS, but respect relationship direction and type.
+
+Support:
+
+- Starting asset selection.
+- Simulation depth.
+- Relationship filters.
+- Affected asset identification.
+- Critical service impact.
+- Scenario comparison.
+
+The simulation must be labelled as a hypothetical dependency-based scenario, not proof that an attacker can actually compromise every connected asset.
+
+Do not execute exploits, malware, destructive actions or unauthorised network operations.
+
+# 10. PHASE 7 — ML MODEL DEVELOPMENT
+
+The existing ML training script must be improved, but ML must remain a separate, optional component until it has been properly trained and evaluated.
+
+The objective is to explore whether historical cybersecurity data can support useful risk forecasting.
+
+Use the following features as a starting point:
+
+- Severity.
+- Exploitability.
+- Exposure.
+- Asset criticality.
+- Vulnerability count.
+- Known exploitation evidence.
+- Historical remediation information, if available.
+
+Potential prediction target:
+
+A clearly defined binary incident outcome within a specified future time window.
+
+Models to evaluate:
+
+1. Logistic Regression.
+2. Random Forest.
+3. Gradient Boosting.
+
+Compare models using:
+
+- Precision.
+- Recall.
+- F1-score.
+- ROC-AUC.
+- Confusion matrix.
+- Calibration.
+
+Handle class imbalance appropriately.
+
+Prevent data leakage.
+
+Use temporal validation where historical timestamps permit it.
+
+Do not generate fake incident labels or claim that synthetic data demonstrates real-world predictive accuracy.
+
+If suitable labelled data is unavailable, keep the model in experimental mode and continue using the rule-based scoring engine.
+
+If the model is validated sufficiently, expose an optional prediction endpoint.
+
+The existing ML script should remain in:
+
+`backend/app/risk_engine/ml_train.py`
+
+Provide instructions for training, evaluation and model export.
+
+# 11. PHASE 8 — REMEDIATION MANAGEMENT
+
+Implement a remediation workflow.
+
+For every confirmed vulnerability finding, allow an authorised user to:
+
+- Create a remediation task.
+- Assign an owner.
+- Set priority.
+- Set a due date.
+- Add notes.
+- Update status.
+- Record remediation evidence.
+- Mark the finding as resolved after verification.
+
+Suggested statuses:
+
+- Open.
+- In progress.
+- Pending verification.
+- Resolved.
+- Accepted risk.
+
+Add a remediation dashboard showing:
+
+- Open findings.
+- Overdue tasks.
+- Critical unresolved vulnerabilities.
+- Completed remediation.
+- Average remediation time.
+
+Reassess the asset after remediation evidence is submitted.
+
+Do not automatically mark a vulnerability as fixed simply because a task is marked complete.
+
+# 12. PHASE 9 — SECURITY AND USER MANAGEMENT
+
+Prepare the application for multiple authorised users.
+
+Implement:
+
+- User registration, if appropriate.
+- Secure login.
+- Password hashing.
+- JWT or secure session-based authentication.
+- Role-based access control.
+- Administrator role.
+- Security analyst role.
+- Read-only viewer role.
+- Protected API endpoints.
+- Input validation.
+- CORS restrictions.
+- Rate limiting.
+- Audit logging.
+- Secure error handling.
+- Environment-based secrets.
+
+Never commit passwords, tokens or API keys.
+
+Protect sensitive infrastructure information.
+
+# 13. PHASE 10 — TESTING AND QUALITY ASSURANCE
+
+Do not finish development without testing the actual application.
+
+Backend testing:
+
+- Unit tests.
+- API tests.
+- Database tests.
+- Vulnerability matching tests.
+- Version comparison edge cases.
+- Risk scoring tests.
+- Dependency graph tests.
+- Simulation tests.
+- Authentication tests.
+
+Frontend testing:
+
+- Component tests.
+- Form validation tests.
+- API integration tests.
+- Dashboard loading tests.
+- Asset management workflow tests.
+- Graph interaction tests.
+
+End-to-end testing:
+
+Test the complete workflow:
+
+1. Register a hospital asset.
+2. Add software and version information.
+3. Assess vulnerabilities.
+4. Retrieve CVE records.
+5. Review matching evidence.
+6. Calculate risk.
+7. Display risk in the dashboard.
+8. Add an infrastructure dependency.
+9. Run a what-if simulation.
+10. Create a remediation task.
+11. Record remediation.
+12. Reassess the asset.
+
+Fix all blocking issues.
+
+Do not claim tests passed unless they were actually executed.
+
+# 14. PHASE 11 — DEPLOYMENT
+
+Prepare the application for real hosting.
+
+Use Docker and Docker Compose.
+
+Create:
+
+- Frontend Dockerfile.
+- Backend Dockerfile.
+- PostgreSQL service.
+- Docker Compose configuration.
+- Production environment example.
+- Nginx configuration if required.
+- Health checks.
+- Database migration instructions.
+- Persistent database storage.
+- Production build configuration.
+
+The deployment should be reproducible.
+
+Provide two deployment options:
+
+Option A: Cloud deployment.
+
+- Frontend: Vercel or equivalent.
+- Backend: Render, Railway or equivalent.
+- Database: Managed PostgreSQL.
+
+Option B: Container deployment.
+
+- Docker Compose.
+- Backend.
+- Frontend.
+- PostgreSQL.
+- Reverse proxy.
+
+Add GitHub Actions workflows for:
+
+- Backend tests.
+- Frontend build.
+- Linting.
+- Deployment checks.
+
+Document:
+
+- Environment variables.
+- API configuration.
+- Database setup.
+- NVD API key setup.
+- Build instructions.
+- Deployment instructions.
+- Troubleshooting.
+- Backup and recovery.
+
+Do not expose PostgreSQL publicly.
+
+Do not expose debugging endpoints or development credentials in production.
+
+# 15. UI AND UX REQUIREMENTS
+
+The application should look like a professional cybersecurity product rather than a basic student CRUD application.
+
+Design direction:
+
+- Modern dark cybersecurity theme.
+- Deep navy background.
+- Teal and blue accents.
+- Clear risk indicators.
+- Professional typography.
+- Consistent spacing.
+- Responsive layouts.
+- Clean charts.
+- Interactive infrastructure graphs.
+- Readable tables.
+- Accessible controls.
+
+Create the following pages:
+
+1. Login.
+2. Dashboard.
+3. Asset Inventory.
+4. Asset Details.
+5. Vulnerability Management.
+6. Risk Assessments.
+7. Digital Twin.
+8. Attack Simulation.
+9. Remediation Management.
+10. ML Model Evaluation.
+11. User Management.
+12. Settings.
+
+Ensure navigation works between all pages.
+
+Do not leave decorative buttons that do nothing.
+
+# 16. ENGINEERING RULES
+
+Follow these rules throughout development:
+
+1. Inspect the existing project before changing it.
+2. Preserve the current folder organisation wherever practical.
+3. Do not unnecessarily rewrite working modules.
+4. Keep frontend and backend responsibilities separate.
+5. Use modular, maintainable code.
+6. Use proper database relationships.
+7. Use migrations for schema changes.
+8. Add error handling.
+9. Add logging.
+10. Validate API requests.
+11. Use asynchronous operations where appropriate.
+12. Avoid unnecessary external API calls.
+13. Never hardcode real credentials.
+14. Avoid fake dashboard metrics.
+15. Never fabricate vulnerability findings.
+16. Clearly distinguish confirmed findings from uncertain findings.
+17. Keep ML optional.
+18. Document assumptions and limitations.
+19. Test changes before declaring them complete.
+20. Update README documentation as the project evolves.
+
+# 17. REQUIRED FINAL DELIVERABLES
+
+At the end of development, provide:
+
+1. Complete source code.
+2. Updated frontend.
+3. Updated backend.
+4. Updated PostgreSQL database models.
+5. Database migrations.
+6. Vulnerability assessment engine.
+7. Explainable risk scoring engine.
+8. Digital Twin.
+9. Dependency analysis.
+10. What-if attack simulation.
+11. Separate ML training and evaluation scripts.
+12. Remediation management.
+13. Authentication and authorisation.
+14. Automated tests.
+15. Dockerfiles.
+16. Docker Compose configuration.
+17. Deployment configuration.
+18. GitHub Actions workflow.
+19. Updated documentation.
+20. Sample hospital infrastructure dataset.
+21. `.env.example`.
+22. Final project ZIP.
+
+Provide a working deployment guide.
+
+The final ZIP must preserve this main project structure:
+
+cyber-risk-platform/\
+├── frontend/\
+│   ├── src/\
+│   ├── public/\
+│   └── package.json\
+├── backend/\
+│   ├── app/\
+│   │   ├── main.py\
+│   │   ├── core/\
+│   │   ├── db/\
+│   │   ├── models/\
+│   │   ├── schemas/\
+│   │   ├── routes/\
+│   │   ├── services/\
+│   │   └── risk_engine/\
+│   ├── alembic/\
+│   ├── tests/\
+│   └── pyproject.toml\
+├── dataset/\
+├── docs/\
+├── docker-compose.yml\
+├── .github/\
+├── .gitignore\
+└── README.md
+
+# 18. EXECUTION STRATEGY
+
+Work in sequential development milestones.
+
+Milestone 1: Inspect and stabilise the existing application.
+
+Milestone 2: Complete asset management and vulnerability assessment.
+
+Milestone 3: Complete risk scoring and dashboard.
+
+Milestone 4: Implement Digital Twin and dependency modelling.
+
+Milestone 5: Implement what-if attack simulation.
+
+Milestone 6: Improve ML training and evaluation independently.
+
+Milestone 7: Implement remediation workflows.
+
+Milestone 8: Implement authentication and security.
+
+Milestone 9: Complete testing and integration.
+
+Milestone 10: Dockerise and deploy.
+
+After every milestone:
+
+- Run relevant tests.
+- Fix errors.
+- Update documentation.
+- Keep the application runnable.
+
+Do not attempt to implement everything in one unverified code dump.
+
+If a requirement cannot be implemented because data, credentials, infrastructure or external services are unavailable, clearly document the blocker and provide the working implementation that can be completed without it.
+
+# FINAL ACCEPTANCE CRITERIA
+
+The project is considered complete only when:
+
+- The frontend and backend run successfully.
+- The database persists application data.
+- Asset registration and CSV imports work.
+- Vulnerability assessment retrieves and stores real source records.
+- Matching evidence is visible.
+- Risk scores are calculated and explained.
+- The dashboard displays actual backend data.
+- The Digital Twin displays configurable infrastructure dependencies.
+- What-if simulation produces explainable impact paths.
+- Remediation workflows function.
+- ML remains separate unless properly trained and evaluated.
+- Authentication and role permissions work.
+- Automated tests pass.
+- Docker deployment works.
+- Documentation is sufficient for another developer to run and deploy the application.
+
+**Your priority is a reliable, working end-to-end cybersecurity platform, not simply a large collection of features. Implement the core functionality properly before adding advanced features.**
+
+## 2. What I recommend you actually build first
+
+Don't ask an AI agent to implement all 12 phases in one go. It may generate a huge amount of code without properly integrating it.
+
+Use this order:
+
+## Development roadmap
+
+1. Milestones 1–3: Stabilise the foundation
+
+   Asset inventory, NVD matching, risk scoring and dashboard.
+
+   Existing foundation
+2. Milestones 4–5: Build the differentiators
+
+   Digital Twin, dependency graph and cascading impact simulation.
+
+   Major development required
+3. Milestones 6–7: Intelligence and action
+
+   ML evaluation and remediation management.
+4. Milestones 8–9: Make it reliable
+
+   Authentication, security, integration and automated testing.
+5. Milestone 10: Deploy
+
+   Docker, PostgreSQL, cloud hosting, CI/CD and final verification.
+
+## 3. Recommended deployment architecture
+
+[BootcampCode 3.02: React Setup | by PrimerPy | Jan, 2026 | Medium](https://images.openai.com/static-rsc-4/cOUIhR5tElQdSKoyazuui2O8dJzXC_OYVuSf9pdou3gwBCxYBsYBVcOvFYtQlWK5Tjgm-0cs9vWD3CpEh05IHFb6oO3j6OrGX139qkjpvY3XxCeoc4xlRn2kct1fhgymXnSZWIXYopSR20QoDsAPHlrQkLJKAUFEo9W5siuq33s?purpose=inline)
+
+[primerpy.medium.com](https://primerpy.medium.com/bootcampcode-3-02-react-setup-80179b60c68e?utm_source=chatgpt.com)
+
+For your first public demonstration, I'd use:
+
+| Component   | Suggested platform          |
+| ----------- | --------------------------- |
+| Frontend    | Vercel                      |
+| Backend     | Render                      |
+| Database    | Managed PostgreSQL          |
+| Source code | GitHub                      |
+| CI/CD       | GitHub Actions              |
+| ML training | Separate Python environment |
+
+You don't need Kubernetes for this project. Docker Compose is sufficient for local development, and managed cloud services are simpler for an initial deployment.
+
+## 4. One important thing I want you to prioritise
+
+Your biggest differentiator should be the combination of:
+
+Vulnerability Assessment + Digital Twin + Cascading Impact Simulation.
+
+A normal vulnerability dashboard tells an administrator which assets are vulnerable.
+
+Your application should additionally answer:
+
+- What happens if this particular asset is compromised?
+- Which connected assets could be affected?
+- Which critical hospital services are at risk?
+- Which asset should the security team fix first?
+
+That is the core product value. Build that properly before spending too much time on ML.
+
+My recommendation: Start by giving the master prompt and your existing ZIP to a coding agent, and ask it to complete Milestones 1–3 first. Once those are tested, move to the Digital Twin and simulation.

@@ -49,3 +49,8 @@ class Asset(Base):
         cascade="all, delete-orphan",
     )
 
+    risk_assessments: Mapped[list["RiskAssessment"]] = relationship(  # noqa: F821
+        "RiskAssessment",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )

@@ -99,3 +99,101 @@ export interface AssessmentDashboardSummary {
   assets_affected: number;
   by_severity: Record<string, number>;
 }
+
+
+// ── Phase 3 & Phase 4: Risk Assessment & Dashboard Types ─────────────────────
+
+export interface RiskFactors {
+  severity: number;
+  exploitability: number;
+  exposure: number;
+  criticality: number;
+  matched_cve_count: number;
+  cisa_kev_alert: boolean;
+  weights: Record<string, number>;
+}
+
+export interface RiskAssessment {
+  id: number;
+  asset_id: number;
+  asset_name?: string | null;
+  asset_type?: string | null;
+  department?: string | null;
+  risk_score: number;
+  risk_level: string; // 'Critical' | 'High' | 'Medium' | 'Low'
+  severity_score: number;
+  exploitability_score: number;
+  exposure_score: number;
+  criticality_score: number;
+  factors: RiskFactors;
+  explanation: string;
+  evidence_coverage: string;
+  recommendations: string[];
+  assessed_at: string;
+}
+
+export interface RiskSummary {
+  total_assets: number;
+  assessed_assets: number;
+  assets_with_confirmed_matches: number;
+  critical_risk_count: number;
+  high_risk_count: number;
+  medium_risk_count: number;
+  low_risk_count: number;
+  average_risk_score: number;
+  cisa_kev_alert_count: number;
+}
+
+export interface DepartmentRisk {
+  department: string;
+  asset_count: number;
+  average_risk: number;
+  critical_count: number;
+  high_count: number;
+}
+
+export interface AssessAllReport {
+  assessed: number;
+  average_score: number;
+  critical_count: number;
+  items: RiskAssessment[];
+}
+
+// ── ML Types ───────────────────────────────────────────────────────────────────
+
+export interface MLStatus {
+  epss_records_loaded: number;
+  anomaly_model_trained: boolean;
+  anomaly_trained_at: string | null;
+  supervised_models_trained: boolean;
+  supervised_algorithms: string[];
+  warning: string;
+}
+
+export interface MLInsight {
+  asset_id: number;
+  asset_name: string;
+  asset_type: string;
+  department: string | null;
+  anomaly_score: number | null;
+  is_anomaly: boolean | null;
+  model_available: boolean;
+}
+
+export interface MLModelCard {
+  id: number;
+  mode: string;
+  algorithm: string;
+  training_rows: number | null;
+  test_rows: number | null;
+  roc_auc: number | null;
+  f1_score: number | null;
+  precision: number | null;
+  recall: number | null;
+  epss_threshold: number | null;
+  is_active: boolean;
+  trained_at: string;
+  warning: string;
+  metrics: Record<string, unknown> | null;
+  feature_names: string[];
+}

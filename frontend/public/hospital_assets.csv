@@ -1,0 +1,11 @@
+asset_name,asset_type,ip_address,operating_system,vendor,software_name,software_version,criticality,exposure,department,environment
+Patient Management Server,Server,192.168.10.10,Ubuntu Server 22.04,Canonical,OpenSSH,8.9p1,critical,internal,Patient Services,simulated
+Hospital Database,Database,192.168.10.20,Ubuntu Server 22.04,PostgreSQL,PostgreSQL,15.4,critical,internal,IT Operations,simulated
+ICU Monitoring Gateway,IoT Gateway,192.168.20.10,Embedded Linux,ExampleVendor,Gateway Firmware,1.2.0,critical,internal,ICU,simulated
+Pharmacy Application Server,Server,192.168.10.30,Windows Server,Microsoft,Example Pharmacy App,3.1.0,high,internal,Pharmacy,simulated
+CCTV Management Server,Server,192.168.30.10,Ubuntu Server,Canonical,nginx,1.18.0,medium,internal,Facilities,simulated
+Admin Workstation 01,Workstation,192.168.40.11,Windows 11,Microsoft,OpenSSH,9.0p1,medium,internal,Administration,simulated
+Network Core Router,Network Device,192.168.1.1,Network OS,ExampleVendor,Router OS,4.2.1,critical,internal,Network Operations,simulated
+Backup Server,Server,192.168.10.40,Ubuntu Server 22.04,Canonical,OpenSSH,8.9p1,high,internal,IT Operations,simulated
+Radiology Workstation,Workstation,192.168.50.12,Windows 10,Microsoft,Example Imaging App,5.0.0,high,internal,Radiology,simulated
+Guest WiFi Controller,Network Device,192.168.60.1,Network OS,ExampleVendor,Controller OS,2.0.0,low,partner,Guest Network,simulated

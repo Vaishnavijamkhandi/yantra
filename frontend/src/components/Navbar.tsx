@@ -25,7 +25,7 @@ export default function Navbar() {
         <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
           <span className="text-xl font-bold tracking-tight">🏥 YantraX</span>
           <span className="text-blue-300 text-xs px-2 py-0.5 rounded bg-blue-900/60 font-medium">
-            Phase 1 &amp; 2
+            Phase 1–4 + ML
           </span>
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
@@ -33,6 +33,7 @@ export default function Navbar() {
           {navLink("/assets", "Assets")}
           {navLink("/vulnerabilities", "CVE Database")}
           {navLink("/assessment", "Assessment")}
+          {navLink("/ml", "ML Insights")}
         </div>
       </div>
     </nav>
