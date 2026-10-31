@@ -1,10 +1,16 @@
 # Python
 venv/
+.venv/
+venbv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
+
+# Databases
+*.db
+*.sqlite3
 
 # Secrets
 .env
@@ -23,4 +29,3 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
-
