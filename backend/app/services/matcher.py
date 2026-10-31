@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.asset import Asset, AssetSoftware
 from app.models.vulnerability import Vulnerability, AssetVulnerability
+from app.services.nvd_service import search_cves
 from app.services.normalizer import (
     software_matches_products,
     software_matches_cpe,
@@ -91,11 +92,53 @@ def _match_software_to_vulns(
     return results
 
 
-def run_assessment(db: Session, asset_ids: list[int] | None = None) -> dict:
+async def _ensure_software_vulns_for_lookup(db: Session, sw_name: str, sw_vendor: str | None, sw_version: str | None) -> None:
+    """Fetch missing CVE data for a specific software when local cache has no matches."""
+    if not sw_name:
+        return
+
+    candidate_keywords: list[str] = []
+    for value in [sw_vendor, sw_name]:
+        if not value:
+            continue
+        cleaned = value.strip().replace("_", " ")
+        if cleaned and len(cleaned) >= 3:
+            candidate_keywords.append(cleaned)
+    if not candidate_keywords:
+        return
+
+    # Keep the lookup specific to the software in the asset, not a broad fleet sweep.
+    for keyword in candidate_keywords[:3]:
+        exists = (
+            db.query(Vulnerability)
+            .filter(
+                Vulnerability.affected_products.ilike(f"%{keyword}%")
+                | Vulnerability.description.ilike(f"%{keyword}%")
+            )
+            .first()
+        )
+        if exists:
+            logger.info("✅ [LOCAL CACHE] Exact software match already present for '%s' in DB.", keyword)
+            return
+
+        logger.info(
+            "🔎 [ON-DEMAND LOOKUP] No local CVE data for asset software '%s'; querying exact keyword '%s'.",
+            sw_name,
+            keyword,
+        )
+        await search_cves(keyword, limit=25, db=db)
+        return
+
+
+async def run_assessment(db: Session, asset_ids: list[int] | None = None) -> dict:
     """
     Run vulnerability matching for all assets (or a subset).
     Upserts results into asset_vulnerabilities.
     Returns a summary dict.
+
+    If a software has no local matches, we fetch NVD data for that exact software name
+    and cache it before re-running the match. This keeps the workflow cache-first and
+    prevents broad global keyword sweeps from being treated as normal assessment input.
     """
     query = db.query(Asset)
     if asset_ids:
@@ -120,6 +163,10 @@ def run_assessment(db: Session, asset_ids: list[int] | None = None) -> dict:
 
         for sw_name, sw_vendor, sw_version in software_items:
             matches = _match_software_to_vulns(sw_name, sw_vendor, sw_version, db)
+            if not matches:
+                await _ensure_software_vulns_for_lookup(db, sw_name, sw_vendor, sw_version)
+                matches = _match_software_to_vulns(sw_name, sw_vendor, sw_version, db)
+
             for vuln, method in matches:
                 # Upsert into asset_vulnerabilities
                 existing = (

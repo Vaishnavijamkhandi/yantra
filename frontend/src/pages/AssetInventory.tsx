@@ -193,12 +193,18 @@ export default function AssetInventory() {
                   </td>
                   <td className="px-4 py-3 text-gray-500">{asset.department || "—"}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Link
                         to={`/assets/${asset.id}`}
                         className="text-blue-600 hover:underline text-xs font-medium"
                       >
                         View
+                      </Link>
+                      <Link
+                        to={`/infrastructure?assetId=${asset.id}`}
+                        className="text-indigo-600 hover:underline text-xs font-medium"
+                      >
+                        Infrastructure
                       </Link>
                       <button
                         onClick={() => handleDelete(asset.id, asset.asset_name)}

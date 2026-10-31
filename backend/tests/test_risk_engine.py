@@ -1,7 +1,10 @@
+import asyncio
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
+from app.main import app
 from app.models.asset import Asset, AssetSoftware, AssetDependency
 from app.models.vulnerability import Vulnerability, AssetVulnerability
 from app.services.risk_engine import (
@@ -9,6 +12,7 @@ from app.services.risk_engine import (
     classify_risk_level,
     assess_dependency_impact,
 )
+from app.services.nvd_service import search_cves
 
 
 @pytest.fixture
@@ -32,6 +36,98 @@ def test_classify_risk_level():
     assert classify_risk_level(30.0) == "Medium"
     assert classify_risk_level(29.9) == "Low"
     assert classify_risk_level(0.0) == "Low"
+
+
+def test_infrastructure_map_route_is_not_treated_as_asset_id(test_db):
+    from app.routes.assets import infrastructure_map
+    payload = infrastructure_map(db=test_db)
+    assert "nodes" in payload
+    assert "edges" in payload
+    assert "asset_count" in payload
+
+
+def test_search_cves_uses_local_cache_before_nvd(test_db, monkeypatch):
+    cached = Vulnerability(
+        cve_id="CVE-2024-0001",
+        description="Apache HTTP Server remote code execution",
+        cvss_score=9.8,
+        severity="CRITICAL",
+        affected_products="apache http server",
+        cpe_strings="cpe:2.3:a:apache:http_server:*:*:*:*:*:*:*",
+    )
+    test_db.add(cached)
+    test_db.commit()
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, *args, **kwargs):
+            raise AssertionError("NVD should not be called when cached data is present")
+
+    monkeypatch.setattr("app.services.nvd_service.httpx.AsyncClient", FakeClient)
+
+    async def _run():
+        results = await search_cves("apache http server", limit=10, db=test_db)
+        assert len(results) == 1
+        assert results[0]["cve_id"] == "CVE-2024-0001"
+
+    asyncio.run(_run())
+
+
+def test_sync_vulnerabilities_without_keywords_does_not_run_broad_nvd_sync(test_db, monkeypatch):
+    from app.routes.vulnerabilities import sync_vulnerabilities
+    from app.schemas.vulnerability import SyncRequest
+
+    async def _raise_if_called(*args, **kwargs):
+        raise AssertionError("Broad NVD sync should not run when no explicit keywords are supplied")
+
+    monkeypatch.setattr("app.routes.vulnerabilities.nvd_collector.sync_bulk", _raise_if_called)
+
+    async def _run():
+        result = await sync_vulnerabilities(SyncRequest(keywords=[], max_per_keyword=10), db=test_db)
+        assert result.keywords_synced == 0
+        assert result.inserted == 0
+        assert result.updated == 0
+        assert result.skipped == 0
+
+    asyncio.run(_run())
+
+
+def test_create_asset_fetches_exact_software_data_if_missing_from_db(test_db, monkeypatch):
+    from app.routes.assets import create_asset
+    from app.schemas.asset import AssetCreate
+
+    captured = {}
+
+    async def fake_search_cves(keyword: str, limit: int = 20, db=None):
+        captured["keyword"] = keyword
+        return [{"cve_id": "CVE-2024-4444", "description": "Sample", "severity": "HIGH"}]
+
+    monkeypatch.setattr("app.routes.assets.search_cves", fake_search_cves)
+
+    async def _run():
+        payload = AssetCreate(
+            asset_name="ICU Monitor",
+            asset_type="Server",
+            ip_address="10.0.0.5",
+            operating_system="Ubuntu Server 22.04",
+            criticality="Critical",
+            exposure="Internal",
+            department="ICU",
+            software=[],
+        )
+        asset = await create_asset(payload, db=test_db)
+        assert asset.asset_name == "ICU Monitor"
+        assert captured["keyword"] == "Ubuntu Server 22.04"
+
+    asyncio.run(_run())
 
 
 def test_asset_with_zero_vulnerabilities_has_uncertainty_floor(test_db):

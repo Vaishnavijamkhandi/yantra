@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { getAssets, getInfrastructureMap, getAssetImpact } from "../services/api";
 import type { Asset, DependencyImpact, InfrastructureMap as InfrastructureGraph } from "../types/asset";
 
 export default function InfrastructureMapPage() {
+  const location = useLocation();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [graph, setGraph] = useState<InfrastructureGraph | null>(null);
   const [impact, setImpact] = useState<DependencyImpact | null>(null);
@@ -12,12 +14,32 @@ export default function InfrastructureMapPage() {
   async function loadData() {
     try {
       setLoading(true);
+      console.log("InfrastructureMap: loadData start", {
+        search: location.search,
+        url: window.location.href,
+      });
+
       const [assetList, infra] = await Promise.all([getAssets(), getInfrastructureMap()]);
+      console.log("InfrastructureMap: API response", {
+        assetCount: assetList.length,
+        graphNodeCount: infra?.nodes?.length ?? 0,
+        graphEdgeCount: infra?.edges?.length ?? 0,
+      });
+
       setAssets(assetList);
       setGraph(infra);
-      if (assetList[0]) {
-        setSelectedId(assetList[0].id);
-      }
+
+      const params = new URLSearchParams(location.search);
+      const assetId = params.get("assetId");
+      const initialId = assetId ? Number(assetId) : assetList[0]?.id ?? null;
+      console.log("InfrastructureMap: selected asset id", {
+        rawAssetId: assetId,
+        initialId,
+      });
+      setSelectedId(initialId);
+    } catch (error) {
+      console.error("InfrastructureMap: loadData failed", error);
+      setSelectedId(null);
     } finally {
       setLoading(false);
     }
@@ -25,13 +47,25 @@ export default function InfrastructureMapPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      console.log("InfrastructureMap: no selectedId, clearing impact");
+      setImpact(null);
+      return;
+    }
+
+    console.log("InfrastructureMap: fetching impact for asset", selectedId);
     getAssetImpact(selectedId)
-      .then(setImpact)
-      .catch(() => setImpact(null));
+      .then((result) => {
+        console.log("InfrastructureMap: impact loaded", result);
+        setImpact(result);
+      })
+      .catch((error) => {
+        console.error("InfrastructureMap: impact fetch failed", { selectedId, error });
+        setImpact(null);
+      });
   }, [selectedId]);
 
   const selectedAsset = useMemo(
@@ -56,6 +90,11 @@ export default function InfrastructureMapPage() {
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
           Loading infrastructure graph...
+        </div>
+      ) : assets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+          <div className="text-lg font-semibold text-slate-700">No infrastructure data loaded</div>
+          <p className="mt-2 text-sm">Upload a CSV from the Assets page to generate the infrastructure map.</p>
         </div>
       ) : (
         <div className="grid xl:grid-cols-[1.4fr_0.6fr] gap-6">
@@ -130,7 +169,7 @@ export default function InfrastructureMapPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-sm text-slate-500">No dependency impact simulated yet.</div>
+                  <div className="text-sm text-slate-500">No dependency impact simulated yet. Add an asset dependency to model downstream effects.</div>
                 )}
               </div>
             ) : (

@@ -12,6 +12,29 @@ import type {
 
 const API_URL = "http://127.0.0.1:8000";
 
+// ── Logging Fetch Wrapper ──────────────────────────────────────────────────
+
+async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const method = init?.method || "GET";
+  const urlStr = typeof input === "string" ? input : input.toString();
+  console.log(`%c🚀 [API Request] ${method} ${urlStr}`, "color: #38bdf8; font-weight: bold;");
+  const t0 = performance.now();
+  try {
+    const res = await fetch(input, init);
+    const duration = (performance.now() - t0).toFixed(1);
+    const color = res.ok ? "#34d399" : "#f87171";
+    console.log(
+      `%c${res.ok ? "✅" : "❌"} [API Response] ${method} ${urlStr} -> ${res.status} ${res.statusText} (${duration}ms)`,
+      `color: ${color}; font-weight: bold;`
+    );
+    return res;
+  } catch (err) {
+    const duration = (performance.now() - t0).toFixed(1);
+    console.error(`❌ [API Error] ${method} ${urlStr} failed after ${duration}ms:`, err);
+    throw err;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -39,32 +62,32 @@ export async function getAssets(params?: {
   if (params?.environment) query.set("environment", params.environment);
 
   const qs = query.toString();
-  const res = await fetch(qs ? `${API_URL}/api/assets/?${qs}` : `${API_URL}/api/assets/`);
+  const res = await apiFetch(qs ? `${API_URL}/api/assets/?${qs}` : `${API_URL}/api/assets/`);
   return handleResponse<Asset[]>(res);
 }
 
 export async function getAsset(id: number): Promise<Asset> {
-  const res = await fetch(`${API_URL}/api/assets/${id}`);
+  const res = await apiFetch(`${API_URL}/api/assets/${id}`);
   return handleResponse<Asset>(res);
 }
 
 export async function getAssetDependencies(assetId: number): Promise<import("../types/asset").AssetDependency[]> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/dependencies`);
+  const res = await apiFetch(`${API_URL}/api/assets/${assetId}/dependencies`);
   return handleResponse<import("../types/asset").AssetDependency[]>(res);
 }
 
 export async function getInfrastructureMap(): Promise<import("../types/asset").InfrastructureMap> {
-  const res = await fetch(`${API_URL}/api/assets/infrastructure-map`);
+  const res = await apiFetch(`${API_URL}/api/assets/infrastructure-map`);
   return handleResponse<import("../types/asset").InfrastructureMap>(res);
 }
 
 export async function getAssetImpact(assetId: number): Promise<import("../types/asset").DependencyImpact> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/impact`);
+  const res = await apiFetch(`${API_URL}/api/assets/${assetId}/impact`);
   return handleResponse<import("../types/asset").DependencyImpact>(res);
 }
 
 export async function createAsset(data: AssetCreate): Promise<Asset> {
-  const res = await fetch(`${API_URL}/api/assets/`, {
+  const res = await apiFetch(`${API_URL}/api/assets/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -73,7 +96,7 @@ export async function createAsset(data: AssetCreate): Promise<Asset> {
 }
 
 export async function updateAsset(id: number, data: AssetUpdate): Promise<Asset> {
-  const res = await fetch(`${API_URL}/api/assets/${id}`, {
+  const res = await apiFetch(`${API_URL}/api/assets/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -82,14 +105,14 @@ export async function updateAsset(id: number, data: AssetUpdate): Promise<Asset>
 }
 
 export async function deleteAsset(id: number): Promise<void> {
-  const res = await fetch(`${API_URL}/api/assets/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`${API_URL}/api/assets/${id}`, { method: "DELETE" });
   return handleResponse<void>(res);
 }
 
 export async function importAssets(file: File): Promise<ImportReport> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${API_URL}/api/assets/import`, {
+  const res = await apiFetch(`${API_URL}/api/assets/import`, {
     method: "POST",
     body: formData,
   });
@@ -113,17 +136,17 @@ export async function getVulnerabilities(params?: {
   if (params?.offset) query.set("offset", params.offset.toString());
 
   const qs = query.toString();
-  const res = await fetch(qs ? `${API_URL}/api/vulnerabilities/?${qs}` : `${API_URL}/api/vulnerabilities/`);
+  const res = await apiFetch(qs ? `${API_URL}/api/vulnerabilities/?${qs}` : `${API_URL}/api/vulnerabilities/`);
   return handleResponse<Vulnerability[]>(res);
 }
 
 export async function getVulnerabilityStats(): Promise<VulnerabilityStats> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/stats`);
+  const res = await apiFetch(`${API_URL}/api/vulnerabilities/stats`);
   return handleResponse<VulnerabilityStats>(res);
 }
 
 export async function seedVulnerabilities(): Promise<{ inserted: number; updated: number; total: number }> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/seed`, {
+  const res = await apiFetch(`${API_URL}/api/vulnerabilities/seed`, {
     method: "POST",
   });
   return handleResponse<{ inserted: number; updated: number; total: number }>(res);
@@ -135,7 +158,7 @@ export async function syncNvdVulnerabilities(keywords: string[] = [], maxPerKeyw
   skipped: number;
   keywords_synced: number;
 }> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/sync`, {
+  const res = await apiFetch(`${API_URL}/api/vulnerabilities/sync`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ keywords, max_per_keyword: maxPerKeyword }),
@@ -144,7 +167,7 @@ export async function syncNvdVulnerabilities(keywords: string[] = [], maxPerKeyw
 }
 
 export async function runAssessment(assetIds?: number[]): Promise<AssessmentSummary> {
-  const res = await fetch(`${API_URL}/api/assessment/run`, {
+  const res = await apiFetch(`${API_URL}/api/assessment/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ asset_ids: assetIds ?? null }),
@@ -164,17 +187,17 @@ export async function getAssessmentResults(params?: {
   if (params?.limit) query.set("limit", params.limit.toString());
   if (params?.offset) query.set("offset", params.offset.toString());
 
-  const res = await fetch(`${API_URL}/api/assessment/results?${query.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/assessment/results?${query.toString()}`);
   return handleResponse<AssetVulnerability[]>(res);
 }
 
 export async function getAssessmentSummary(): Promise<AssessmentDashboardSummary> {
-  const res = await fetch(`${API_URL}/api/assessment/summary`);
+  const res = await apiFetch(`${API_URL}/api/assessment/summary`);
   return handleResponse<AssessmentDashboardSummary>(res);
 }
 
 export async function getAssetVulnerabilities(assetId: number): Promise<AssetVulnerability[]> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/vulnerabilities`);
+  const res = await apiFetch(`${API_URL}/api/assets/${assetId}/vulnerabilities`);
   return handleResponse<AssetVulnerability[]>(res);
 }
 
@@ -182,7 +205,7 @@ export async function getAssetVulnerabilities(assetId: number): Promise<AssetVul
 // ── Phase 3 & Phase 4: Risk Assessment API ──────────────────────────────────
 
 export async function getRiskSummary(): Promise<import("../types/asset").RiskSummary> {
-  const res = await fetch(`${API_URL}/api/risks/summary`);
+  const res = await apiFetch(`${API_URL}/api/risks/summary`);
   return handleResponse<import("../types/asset").RiskSummary>(res);
 }
 
@@ -196,72 +219,72 @@ export async function getLatestRisks(params?: {
   if (params?.risk_level) query.set("risk_level", params.risk_level);
   if (params?.limit) query.set("limit", params.limit.toString());
 
-  const res = await fetch(`${API_URL}/api/risks/?${query.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/risks/?${query.toString()}`);
   return handleResponse<import("../types/asset").RiskAssessment[]>(res);
 }
 
 export async function assessAssetRisk(
   assetId: number
 ): Promise<import("../types/asset").RiskAssessment> {
-  const res = await fetch(`${API_URL}/api/risks/assess/${assetId}`, {
+  const res = await apiFetch(`${API_URL}/api/risks/assess/${assetId}`, {
     method: "POST",
   });
   return handleResponse<import("../types/asset").RiskAssessment>(res);
 }
 
 export async function assessAllRisks(): Promise<import("../types/asset").AssessAllReport> {
-  const res = await fetch(`${API_URL}/api/risks/assess-all`, {
+  const res = await apiFetch(`${API_URL}/api/risks/assess-all`, {
     method: "POST",
   });
   return handleResponse<import("../types/asset").AssessAllReport>(res);
 }
 
 export async function getDepartmentRisks(): Promise<import("../types/asset").DepartmentRisk[]> {
-  const res = await fetch(`${API_URL}/api/risks/departments`);
+  const res = await apiFetch(`${API_URL}/api/risks/departments`);
   return handleResponse<import("../types/asset").DepartmentRisk[]>(res);
 }
 
 export async function getAssetRiskHistory(
   assetId: number
 ): Promise<import("../types/asset").RiskAssessment[]> {
-  const res = await fetch(`${API_URL}/api/risks/asset/${assetId}/history`);
+  const res = await apiFetch(`${API_URL}/api/risks/asset/${assetId}/history`);
   return handleResponse<import("../types/asset").RiskAssessment[]>(res);
 }
 
 // ── ML API calls ──────────────────────────────────────────────────────────────
 
 export async function getMLStatus() {
-  const r = await fetch(`${API_URL}/api/ml/status`);
+  const r = await apiFetch(`${API_URL}/api/ml/status`);
   if (!r.ok) throw new Error("ML status fetch failed");
   return r.json();
 }
 
 export async function getMLInsights() {
-  const r = await fetch(`${API_URL}/api/ml/insights`);
+  const r = await apiFetch(`${API_URL}/api/ml/insights`);
   if (!r.ok) throw new Error("ML insights fetch failed");
   return r.json();
 }
 
 export async function getMLModelCards() {
-  const r = await fetch(`${API_URL}/api/ml/model-cards`);
+  const r = await apiFetch(`${API_URL}/api/ml/model-cards`);
   if (!r.ok) throw new Error("ML model cards fetch failed");
   return r.json();
 }
 
 export async function loadEPSS() {
-  const r = await fetch(`${API_URL}/api/ml/epss/load`, { method: "POST" });
+  const r = await apiFetch(`${API_URL}/api/ml/epss/load`, { method: "POST" });
   if (!r.ok) throw new Error("EPSS load trigger failed");
   return r.json();
 }
 
 export async function trainAnomaly() {
-  const r = await fetch(`${API_URL}/api/ml/train/anomaly`, { method: "POST" });
+  const r = await apiFetch(`${API_URL}/api/ml/train/anomaly`, { method: "POST" });
   if (!r.ok) throw new Error("Anomaly training trigger failed");
   return r.json();
 }
 
 export async function trainSupervised() {
-  const r = await fetch(`${API_URL}/api/ml/train/supervised`, { method: "POST" });
+  const r = await apiFetch(`${API_URL}/api/ml/train/supervised`, { method: "POST" });
   if (!r.ok) throw new Error("Supervised training trigger failed");
   return r.json();
 }

@@ -98,3 +98,19 @@ def test_epss_csv_roundtrip(tmp_path):
     assert rows[0]["pct"] == 0.99
     assert rows[1]["pct"] == 0.30
 
+
+def test_background_ml_ticket_is_queued():
+    """Uploading CSV should enqueue a background ML job without blocking the import response."""
+    from app.routes import assets
+
+    calls = []
+
+    class DummyTasks:
+        def add_task(self, func, *args, **kwargs):
+            calls.append((func.__name__, args, kwargs))
+
+    assets.queue_background_ml(DummyTasks())
+
+    assert calls
+    assert calls[0][0] == "_trigger_background_ml_after_import"
+

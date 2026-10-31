@@ -15,12 +15,13 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.models.vulnerability import Vulnerability
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 NVD_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-# NVD rate limit: 5 req/30 s without API key → be conservative
-REQUEST_DELAY = 7.0
+# NVD rate limit: 5 req/30 s without API key, 50 req/30s with key
+REQUEST_DELAY = 1.0 if settings.NVD_API_KEY else 7.0
 PAGE_SIZE = 100
 
 
@@ -97,13 +98,21 @@ async def _fetch_page(
     }
     for attempt in range(3):
         try:
+            logger.info("🌐 [NVD API CALL] Querying NVD for '%s' (startIndex=%d, limit=%d, attempt %d/3)...", keyword, start, PAGE_SIZE, attempt + 1)
             resp = await client.get(NVD_BASE, params=params, timeout=30)
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                total = data.get("totalResults", 0)
+                vulns = data.get("vulnerabilities", [])
+                logger.info("✅ [NVD API SUCCESS] Received %d CVEs (Total available: %d) for keyword '%s'", len(vulns), total, keyword)
+                return data
             if resp.status_code == 429:
+                logger.warning("⚠️ [NVD API RATE LIMIT] 429 Too Many Requests received from NVD. Sleeping 30s...")
                 await asyncio.sleep(30)
+            else:
+                logger.warning("⚠️ [NVD API WARNING] NVD returned HTTP %d: %s", resp.status_code, resp.text[:200])
         except httpx.RequestError as exc:
-            logger.warning("NVD request error (attempt %d): %s", attempt + 1, exc)
+            logger.warning("❌ [NVD API ERROR] Request error (attempt %d): %s", attempt + 1, exc)
             await asyncio.sleep(10)
     return {}
 
@@ -176,9 +185,14 @@ async def sync_keyword(keyword: str, db: Session, max_results: int = 500) -> dic
     """Fetch CVEs matching `keyword` from NVD and upsert into DB."""
     inserted = updated = skipped = 0
 
-    async with httpx.AsyncClient(
-        headers={"User-Agent": "CyberSentra-Hospital-Asset-Manager/1.0"}
-    ) as client:
+    headers = {"User-Agent": "CyberSentra-Hospital-Asset-Manager/1.0"}
+    if settings.NVD_API_KEY:
+        headers["apiKey"] = settings.NVD_API_KEY
+        logger.info("🔑 [NVD API] Authenticating with NVD API key: %s...", settings.NVD_API_KEY[:8])
+    else:
+        logger.warning("⚠️ [NVD API] No NVD_API_KEY set — rate limited to 5 requests / 30s")
+
+    async with httpx.AsyncClient(headers=headers) as client:
         start = 0
         while start < max_results:
             data = await _fetch_page(client, keyword, start)
@@ -208,7 +222,7 @@ async def sync_keyword(keyword: str, db: Session, max_results: int = 500) -> dic
 
             await asyncio.sleep(REQUEST_DELAY)
 
-    logger.info("NVD sync '%s': +%d inserted, ~%d updated, %d skipped", keyword, inserted, updated, skipped)
+    logger.info("📊 [NVD SYNC FINISHED] '%s': +%d inserted, ~%d updated, %d skipped", keyword, inserted, updated, skipped)
     return {"inserted": inserted, "updated": updated, "skipped": skipped, "keyword": keyword}
 
 
@@ -234,4 +248,3 @@ async def sync_bulk(keywords: list[str], db: Session, max_per_keyword: int = 200
         total["keywords_synced"] += 1
         await asyncio.sleep(REQUEST_DELAY)
     return total
-

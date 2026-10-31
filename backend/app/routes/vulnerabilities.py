@@ -77,10 +77,14 @@ def seed_vulnerabilities(db: Session = Depends(get_db)):
 @router.post("/sync", response_model=SyncReport)
 async def sync_vulnerabilities(body: SyncRequest, db: Session = Depends(get_db)):
     """
-    Fetch CVEs from NVD API and store them.
-    Provide specific keywords or leave empty to use the built-in hospital keyword list.
+    Explicitly sync CVEs for the given keywords only.
+    Empty keywords means no broad sweep; matching should happen only for the software
+    actually present on imported assets, using the local DB as cache.
     """
-    keywords = body.keywords if body.keywords else nvd_collector.HOSPITAL_KEYWORDS
+    keywords = body.keywords or []
+    if not keywords:
+        return SyncReport(inserted=0, updated=0, skipped=0, keywords_synced=0)
+
     result = await nvd_collector.sync_bulk(keywords, db, max_per_keyword=body.max_per_keyword)
     return SyncReport(**result)
 
@@ -90,18 +94,17 @@ async def sync_vulnerabilities(body: SyncRequest, db: Session = Depends(get_db))
 # ══════════════════════════════════════════════════════════════════════════════
 
 @assessment_router.post("/run", response_model=AssessmentSummary)
-def run_vulnerability_assessment(
+async def run_vulnerability_assessment(
     body: AssessmentRequest,
     db: Session = Depends(get_db),
 ):
-    """Run matching engine against all (or selected) assets."""
-    vuln_count = db.query(Vulnerability).count()
-    if vuln_count == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="No vulnerabilities in database. Run POST /api/vulnerabilities/sync first.",
-        )
-    result = run_assessment(db, asset_ids=body.asset_ids)
+    """Run matching engine against all (or selected) assets.
+
+    Missing local data is fetched on demand using the exact software names from the
+    asset inventory, so the system behaves like a cache-first lookup rather than a
+    blanket NVD sweep.
+    """
+    result = await run_assessment(db, asset_ids=body.asset_ids)
     return AssessmentSummary(**result)
 
 
