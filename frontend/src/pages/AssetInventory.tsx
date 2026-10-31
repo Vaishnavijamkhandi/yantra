@@ -6,15 +6,15 @@ import CsvUpload from "../components/CsvUpload";
 import { Link } from "react-router-dom";
 
 const CRITICALITY_COLORS: Record<string, string> = {
-  Critical: "bg-red-100 text-red-700 border border-red-200",
-  High: "bg-orange-100 text-orange-700 border border-orange-200",
-  Medium: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-  Low: "bg-green-100 text-green-700 border border-green-200",
+  Critical: "bg-rose-950/80 text-rose-300 border border-rose-800/80",
+  High: "bg-amber-950/80 text-amber-300 border border-amber-800/80",
+  Medium: "bg-yellow-950/80 text-yellow-300 border border-yellow-800/80",
+  Low: "bg-emerald-950/80 text-emerald-300 border border-emerald-800/80",
 };
 
 const EXPOSURE_COLORS: Record<string, string> = {
-  Internal: "bg-blue-100 text-blue-700",
-  External: "bg-purple-100 text-purple-700",
+  Internal: "bg-cyan-950/80 text-cyan-300 border border-cyan-800/80",
+  External: "bg-purple-950/80 text-purple-300 border border-purple-800/80",
 };
 
 export default function AssetInventory() {
@@ -64,8 +64,8 @@ export default function AssetInventory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Asset Inventory</h1>
-          <p className="text-gray-500 text-sm">{assets.length} asset(s) found</p>
+          <h1 className="text-2xl font-bold text-white">Asset Inventory</h1>
+          <p className="text-slate-400 text-sm">{assets.length} asset(s) found</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -84,23 +84,23 @@ export default function AssetInventory() {
       )}
 
       {/* CSV Upload */}
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-5 border border-gray-100">
+      <div className="bg-slate-900 rounded-xl shadow-lg p-5 mb-5 border border-slate-800">
         <CsvUpload onSuccess={loadAssets} />
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-5 border border-gray-100">
+      <div className="bg-slate-900 rounded-xl shadow-lg p-5 mb-5 border border-slate-800">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <input
             placeholder="🔍 Search name, IP, type, dept..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm col-span-1 sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 col-span-1 sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-500"
           />
           <select
             value={filterCriticality}
             onChange={e => setFilterCriticality(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">All Criticalities</option>
             {["Critical","High","Medium","Low"].map(c => <option key={c}>{c}</option>)}
@@ -108,7 +108,7 @@ export default function AssetInventory() {
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">All Types</option>
             {["Server","Database","Computer","Router","Firewall","IoT","Application"].map(t => <option key={t}>{t}</option>)}
@@ -118,7 +118,7 @@ export default function AssetInventory() {
           <select
             value={filterExposure}
             onChange={e => setFilterExposure(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">All Exposures</option>
             <option>Internal</option>
@@ -127,7 +127,7 @@ export default function AssetInventory() {
           {(search || filterCriticality || filterType || filterExposure) && (
             <button
               onClick={() => { setSearch(""); setFilterCriticality(""); setFilterType(""); setFilterExposure(""); }}
-              className="text-xs text-gray-500 hover:text-red-600 underline"
+              className="text-xs text-slate-400 hover:text-rose-400 underline cursor-pointer"
             >
               Clear filters
             </button>
@@ -143,7 +143,7 @@ export default function AssetInventory() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-x-auto border border-gray-100">
+      <div className="bg-slate-900 rounded-xl shadow-lg overflow-x-auto border border-slate-800">
         {loading ? (
           <div className="p-10 text-center text-gray-400">Loading assets...</div>
         ) : assets.length === 0 ? (
@@ -152,7 +152,7 @@ export default function AssetInventory() {
           </div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
+            <thead className="bg-slate-950 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Asset Name</th>
@@ -165,20 +165,20 @@ export default function AssetInventory() {
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-800">
               {assets.map((asset) => (
-                <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-400">{asset.id}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    <Link to={`/assets/${asset.id}`} className="hover:text-blue-600 hover:underline">
+                <tr key={asset.id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="px-4 py-3 text-slate-500">{asset.id}</td>
+                  <td className="px-4 py-3 font-medium text-slate-100">
+                    <Link to={`/assets/${asset.id}`} className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold">
                       {asset.asset_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{asset.asset_type}</td>
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                  <td className="px-4 py-3 text-slate-300">{asset.asset_type}</td>
+                  <td className="px-4 py-3 text-slate-400 font-mono text-xs">
                     {asset.ip_address || "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                  <td className="px-4 py-3 text-slate-400 text-xs">
                     {asset.operating_system || "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -191,18 +191,18 @@ export default function AssetInventory() {
                       {asset.exposure}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{asset.department || "—"}</td>
+                  <td className="px-4 py-3 text-slate-400">{asset.department || "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <Link
                         to={`/assets/${asset.id}`}
-                        className="text-blue-600 hover:underline text-xs font-medium"
+                        className="text-cyan-400 hover:text-cyan-300 hover:underline text-xs font-medium"
                       >
                         View
                       </Link>
                       <button
                         onClick={() => handleDelete(asset.id, asset.asset_name)}
-                        className="text-red-500 hover:text-red-700 text-xs font-medium"
+                        className="text-rose-400 hover:text-rose-300 text-xs font-medium"
                       >
                         Delete
                       </button>

@@ -84,8 +84,8 @@ export default function Vulnerabilities() {
       {/* Header and Action Buttons */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">NVD Vulnerability Database</h1>
-          <p className="text-gray-500 text-sm">
+          <h1 className="text-2xl font-bold text-white">NVD Vulnerability Database</h1>
+          <p className="text-slate-400 text-sm">
             Phase 2: National Vulnerability Database (NVD) v2.0 sync &amp; CVE repository
           </p>
         </div>
@@ -125,23 +125,23 @@ export default function Vulnerabilities() {
       {/* Stats bar */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <span className="text-xs uppercase font-semibold text-gray-400">Total CVEs</span>
-            <p className="text-2xl font-bold text-gray-800 mt-1">{stats.total}</p>
+          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+            <span className="text-xs uppercase font-semibold text-slate-500">Total CVEs</span>
+            <p className="text-2xl font-bold text-slate-100 mt-1">{stats.total}</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-red-100">
+          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
             <span className="text-xs uppercase font-semibold text-red-600">Critical</span>
             <p className="text-2xl font-bold text-red-700 mt-1">{stats.by_severity["CRITICAL"] || 0}</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
+          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
             <span className="text-xs uppercase font-semibold text-orange-600">High</span>
             <p className="text-2xl font-bold text-orange-700 mt-1">{stats.by_severity["HIGH"] || 0}</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-100">
+          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
             <span className="text-xs uppercase font-semibold text-yellow-600">Medium</span>
             <p className="text-2xl font-bold text-yellow-700 mt-1">{stats.by_severity["MEDIUM"] || 0}</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
             <span className="text-xs uppercase font-semibold text-green-600">Low</span>
             <p className="text-2xl font-bold text-green-700 mt-1">{stats.by_severity["LOW"] || 0}</p>
           </div>
@@ -149,18 +149,18 @@ export default function Vulnerabilities() {
       )}
 
       {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <input
           type="text"
           placeholder="🔍 Search CVE ID, description, product..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         >
           <option value="">All Severities</option>
           <option value="CRITICAL">Critical (CVSS 9.0 - 10.0)</option>
@@ -171,7 +171,7 @@ export default function Vulnerabilities() {
         <select
           value={minScore ?? ""}
           onChange={(e) => setMinScore(e.target.value ? parseFloat(e.target.value) : undefined)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         >
           <option value="">Any CVSS Score</option>
           <option value="9.0">Score &gt;= 9.0</option>
@@ -181,19 +181,19 @@ export default function Vulnerabilities() {
       </div>
 
       {/* CVE Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-x-auto border border-gray-100">
+      <div className="bg-slate-900 rounded-xl shadow-lg overflow-x-auto border border-slate-800">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Loading vulnerabilities...</div>
+          <div className="p-12 text-center text-slate-500">Loading vulnerabilities...</div>
         ) : vulns.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 space-y-3">
+          <div className="p-12 text-center text-slate-400 space-y-3">
             <p className="text-base font-semibold">No vulnerabilities found in database.</p>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-slate-500">
               Click &quot;Seed Curated CVEs&quot; above to load sample hospital vulnerability records, or &quot;🔄 Sync from NVD API&quot;.
             </p>
           </div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
+            <thead className="bg-slate-950 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
               <tr>
                 <th className="px-4 py-3">CVE ID</th>
                 <th className="px-4 py-3">Severity</th>
@@ -203,11 +203,11 @@ export default function Vulnerabilities() {
                 <th className="px-4 py-3">Reference</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-800">
               {vulns.map((v) => {
                 const sev = v.severity?.toUpperCase() || "UNKNOWN";
                 return (
-                  <tr key={v.id} className="hover:bg-gray-50/80 transition-colors">
+                  <tr key={v.id} className="hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 py-3 font-mono font-semibold text-blue-700 whitespace-nowrap">
                       {v.cve_id}
                     </td>
@@ -236,17 +236,17 @@ export default function Vulnerabilities() {
                           />
                           <span>{v.cvss_score.toFixed(1)}</span>
                           {v.cvss_version && (
-                            <span className="text-[10px] text-gray-400">v{v.cvss_version}</span>
+                            <span className="text-[10px] text-slate-500">v{v.cvss_version}</span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-400 italic">N/A</span>
+                        <span className="text-slate-500 italic">N/A</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-700 max-w-md line-clamp-2">
                       {v.description}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
+                    <td className="px-4 py-3 text-xs text-slate-400 max-w-xs truncate">
                       {v.affected_products || "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs">
@@ -255,12 +255,12 @@ export default function Vulnerabilities() {
                           href={v.reference_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold"
                         >
                           NVD Details ↗
                         </a>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-slate-500">—</span>
                       )}
                     </td>
                   </tr>

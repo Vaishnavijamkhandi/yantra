@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAssessmentResults, getActionPlan } from "../services/api";
+import { getAssessmentResults, getActionPlan, quarantineAsset, resolveFinding } from "../services/api";
 import type { AssetVulnerability, ActionPlanProfile } from "../types/asset";
+import BentoClarityDeck from "../components/BentoClarityDeck";
 
 export default function InfrastructureMap() {
   const [findings, setFindings] = useState<AssetVulnerability[]>([]);
@@ -10,11 +11,12 @@ export default function InfrastructureMap() {
   const [loading, setLoading] = useState(true);
   const [loadingPlan, setLoadingPlan] = useState(false);
 
-  // Modal State
+  // View & Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [designApproach, setDesignApproach] = useState<"A" | "B">("A");
+  const [activeDeckMode, setActiveDeckMode] = useState<"bento" | "detailed" | "impact_action">("bento");
   const [copiedCmd, setCopiedCmd] = useState(false);
   const [showDetailedInB, setShowDetailedInB] = useState(false);
+  const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
   // Load findings on mount
   useEffect(() => {
@@ -70,6 +72,26 @@ export default function InfrastructureMap() {
     setTimeout(() => setCopiedCmd(false), 2500);
   }
 
+  async function handleQuarantine(assetId: number) {
+    try {
+      const res = await quarantineAsset(assetId);
+      setStatusNotification(res.message);
+      setTimeout(() => setStatusNotification(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Quarantine failed");
+    }
+  }
+
+  async function handleResolve(findingId: number) {
+    try {
+      const res = await resolveFinding(findingId);
+      setStatusNotification(res.message);
+      setTimeout(() => setStatusNotification(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Resolve failed");
+    }
+  }
+
   const assetName = actionPlan?.asset_name || `Asset #${selectedFinding?.asset_id || 1}`;
   const cveId = selectedFinding?.vulnerability.cve_id || "CVE-2022-0847";
   const severity = selectedFinding?.vulnerability.severity?.toUpperCase() || "HIGH";
@@ -78,7 +100,15 @@ export default function InfrastructureMap() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden font-sans select-none">
-      {/* ── TOP COMMAND CENTRE BAR ───────────────────────────────────────────── */}
+      {/* ── STATUS NOTIFICATION TOAST ────────────────────────────────────────── */}
+      {statusNotification && (
+        <div className="fixed top-16 right-6 z-50 bg-emerald-950/90 border border-emerald-500/80 text-emerald-200 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 animate-bounce">
+          <span>✓</span>
+          <span>{statusNotification}</span>
+        </div>
+      )}
+
+      {/* ── TOP COMMAND CENTRE HEADER BAR ────────────────────────────────────── */}
       <div className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 z-20">
         <div>
           <div className="flex items-center gap-3">
@@ -95,11 +125,11 @@ export default function InfrastructureMap() {
           </p>
         </div>
 
-        {/* Finding Selector & Design Switcher */}
+        {/* Threat Finding Selector & Deck Mode Switcher */}
         <div className="flex flex-wrap items-center gap-3">
           {findings.length > 0 && (
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1">
-              <span className="text-xs text-slate-400 font-medium">Select Threat:</span>
+              <span className="text-xs text-slate-400 font-medium">Target Host:</span>
               <select
                 value={selectedFinding?.id ?? ""}
                 onChange={(e) => {
@@ -117,23 +147,33 @@ export default function InfrastructureMap() {
             </div>
           )}
 
-          {/* Quick toggle between Approach A and B */}
+          {/* 3-Way Deck Mode Switcher */}
           <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5">
             <button
-              onClick={() => setDesignApproach("A")}
-              className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
-                designApproach === "A"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+              onClick={() => setActiveDeckMode("bento")}
+              className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                activeDeckMode === "bento"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Bento Clarity Deck
+            </button>
+            <button
+              onClick={() => setActiveDeckMode("detailed")}
+              className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                activeDeckMode === "detailed"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               Detailed View (A)
             </button>
             <button
-              onClick={() => setDesignApproach("B")}
-              className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer ${
-                designApproach === "B"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+              onClick={() => setActiveDeckMode("impact_action")}
+              className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                activeDeckMode === "impact_action"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -143,20 +183,19 @@ export default function InfrastructureMap() {
         </div>
       </div>
 
-      {/* ── MAIN COMMAND CANVAS ─────────────────────────────────────────────── */}
-      <div className="flex-1 relative flex items-center justify-center p-6 md:p-12 overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:28px_28px]">
+      {/* ── SIMULATED NETWORK VISUALIZATION CANVAS ───────────────────────────── */}
+      <div className="relative flex items-center justify-center p-6 md:p-10 overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:28px_28px] border-b border-slate-800/80">
         {/* Subtle vignette radial mask */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,#020617_90%)]" />
 
-        {/* Network Canvas Elements Wrapper (Blurs more when modal is open) */}
+        {/* Network Canvas Elements Wrapper */}
         <div
-          className={`relative w-full max-w-5xl h-[520px] transition-all duration-700 flex items-center justify-center ${
+          className={`relative w-full max-w-5xl h-[460px] transition-all duration-700 flex items-center justify-center ${
             isModalOpen ? "scale-90 filter blur-md brightness-40 pointer-events-none" : "scale-100"
           }`}
         >
           {/* ── BACKGROUND LAYER: ILLUSTRATIVE CONNECTIVITY LINES ────────────── */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none stroke-slate-800/80">
-            {/* Center (50%, 50%) to surrounding nodes */}
             <line x1="50%" y1="50%" x2="18%" y2="22%" strokeDasharray="4 4" strokeWidth="1.5" />
             <line x1="50%" y1="50%" x2="82%" y2="20%" strokeDasharray="4 4" strokeWidth="1.5" />
             <line x1="50%" y1="50%" x2="16%" y2="78%" strokeDasharray="4 4" strokeWidth="1.5" />
@@ -166,9 +205,9 @@ export default function InfrastructureMap() {
             <line x1="16%" y1="78%" x2="84%" y2="80%" strokeDasharray="6 6" strokeWidth="1" />
           </svg>
 
-          {/* ── BACKGROUND NETWORK NODES (Blurred depth of field) ─────────────── */}
+          {/* ── BACKGROUND NETWORK NODES (Depth blur) ────────────────────────── */}
           {/* Node 1: Edge Router / Gateway */}
-          <div className="absolute top-[18%] left-[12%] md:left-[16%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
+          <div className="absolute top-[16%] left-[12%] md:left-[16%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
             <div className="w-12 h-12 rounded-xl bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-md">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
@@ -179,7 +218,7 @@ export default function InfrastructureMap() {
           </div>
 
           {/* Node 2: Cloud IAM / Auth Service */}
-          <div className="absolute top-[16%] right-[12%] md:right-[16%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
+          <div className="absolute top-[14%] right-[12%] md:right-[16%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
             <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-indigo-400 shadow-md">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" />
@@ -190,7 +229,7 @@ export default function InfrastructureMap() {
           </div>
 
           {/* Node 3: Core Database Replica */}
-          <div className="absolute bottom-[16%] left-[10%] md:left-[14%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
+          <div className="absolute bottom-[14%] left-[10%] md:left-[14%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
             <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 shadow-md">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -201,7 +240,7 @@ export default function InfrastructureMap() {
           </div>
 
           {/* Node 4: Storage & Backup Vault */}
-          <div className="absolute bottom-[16%] right-[10%] md:right-[14%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
+          <div className="absolute bottom-[14%] right-[10%] md:right-[14%] flex flex-col items-center filter blur-[1px] opacity-45 select-none">
             <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 shadow-md">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -209,16 +248,6 @@ export default function InfrastructureMap() {
             </div>
             <span className="text-[11px] font-semibold text-slate-400 mt-1">Backup Storage Vault</span>
             <span className="text-[9px] text-slate-500 font-mono">10.0.4.50</span>
-          </div>
-
-          {/* Node 5: External Untrusted Zone */}
-          <div className="absolute left-[3%] top-[48%] flex flex-col items-center filter blur-[1.5px] opacity-35 select-none">
-            <div className="w-10 h-10 rounded-full bg-slate-900 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-              </svg>
-            </div>
-            <span className="text-[10px] text-slate-500 mt-1 font-mono">WAN / Internet</span>
           </div>
 
           {/* ── CENTRAL COMPUTER (SHARP, PROMINENT, FOCAL POINT) ─────────────── */}
@@ -229,16 +258,13 @@ export default function InfrastructureMap() {
 
             {/* Central Computer Device Card */}
             <div className="w-64 bg-slate-900/90 border-2 border-rose-500/70 rounded-2xl p-5 shadow-[0_0_40px_rgba(244,63,94,0.22)] backdrop-blur-md flex flex-col items-center text-center transition-transform hover:scale-105 duration-300">
-              {/* Computer Screen Icon */}
               <div className="w-16 h-16 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center text-rose-400 mb-3 shadow-inner relative">
                 <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                {/* Status blinking indicator */}
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse ring-2 ring-rose-400/40" />
               </div>
 
-              {/* Hostname & Specs */}
               <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 mb-1">
                 AFFECTED HOST • RISK ACTIVE
               </span>
@@ -255,7 +281,6 @@ export default function InfrastructureMap() {
 
             {/* ── FLOATING VULNERABILITY CALLOUT CARD ──────────────────────────── */}
             <div className="absolute -top-16 -right-24 md:-right-44 z-20">
-              {/* Angled SVG connection pointer */}
               <svg className="absolute -bottom-8 -left-12 w-14 h-14 pointer-events-none stroke-rose-500/60">
                 <path d="M50,4 C20,10 10,40 4,50" fill="none" strokeWidth="1.5" strokeDasharray="3 3" />
               </svg>
@@ -289,20 +314,62 @@ export default function InfrastructureMap() {
           </div>
         </div>
 
-        {/* Conceptual Topology Simulation Disclaimer Tag */}
-        <div className="absolute bottom-4 left-6 text-[11px] text-slate-500 flex items-center gap-2 pointer-events-none">
+        {/* Conceptual Topology Disclaimer Tag */}
+        <div className="absolute bottom-3 left-6 text-[11px] text-slate-500 flex items-center gap-2 pointer-events-none">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-          <span>Conceptual topology representation. Depth perspective illustrative of asset perimeter.</span>
+          <span>Conceptual topology simulation. Depth perspective illustrative of asset perimeter.</span>
         </div>
       </div>
 
+      {/* ── THE BENTO CLARITY DECK (INLINE INTEGRATED VIEW) ───────────────────── */}
+      <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <h2 className="text-base font-bold tracking-tight text-white uppercase">
+                The Bento Clarity Deck
+              </h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                Modular Threat Intelligence
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Instant visual clarity on exploit mechanism, attack probability, financial fallout, and terminal remediation steps.
+            </p>
+          </div>
+
+          <button
+            onClick={handleOpenModal}
+            className="self-start sm:self-auto bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <span>Open Expanded Deck Modal</span>
+            <span>↗</span>
+          </button>
+        </div>
+
+        {loadingPlan || !actionPlan ? (
+          <div className="p-12 text-center text-slate-500 space-y-2 bg-slate-900/40 rounded-2xl border border-slate-800">
+            <div className="animate-spin text-2xl text-cyan-400 inline-block">⟳</div>
+            <p className="text-xs">Loading live threat intelligence &amp; Bento Deck...</p>
+          </div>
+        ) : (
+          <BentoClarityDeck
+            actionPlan={actionPlan}
+            selectedFinding={selectedFinding}
+            onQuarantine={handleQuarantine}
+            onResolve={handleResolve}
+          />
+        )}
+      </div>
+
       {/* ══════════════════════════════════════════════════════════════════════════ */}
-      {/* DETAILED MODAL OVERLAY (APPROACH A vs APPROACH B)                          */}
+      {/* DETAILED MODAL OVERLAY (BENTO DECK | APPROACH A | APPROACH B)            */}
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
           <div className="bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[88vh] flex flex-col overflow-hidden text-slate-100">
-            {/* ── MODAL HEADER (SHARED FOR BOTH APPROACHES) ────────────────────── */}
+            {/* ── MODAL HEADER ────────────────────────────────────────────────── */}
             <div className="p-6 border-b border-slate-800 bg-slate-900/95 flex flex-col md:flex-row md:items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -340,24 +407,34 @@ export default function InfrastructureMap() {
               <div className="flex items-center gap-3 self-end md:self-start">
                 <div className="bg-slate-950 border border-slate-700 p-1 rounded-lg flex items-center text-xs font-semibold">
                   <button
-                    onClick={() => setDesignApproach("A")}
+                    onClick={() => setActiveDeckMode("bento")}
                     className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                      designApproach === "A"
+                      activeDeckMode === "bento"
                         ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    Approach A: Detailed View
+                    Bento Clarity Deck
                   </button>
                   <button
-                    onClick={() => setDesignApproach("B")}
+                    onClick={() => setActiveDeckMode("detailed")}
                     className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                      designApproach === "B"
+                      activeDeckMode === "detailed"
                         ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    Approach B: Impact → Action
+                    Detailed View (A)
+                  </button>
+                  <button
+                    onClick={() => setActiveDeckMode("impact_action")}
+                    className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                      activeDeckMode === "impact_action"
+                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Impact → Action (B)
                   </button>
                 </div>
 
@@ -378,9 +455,19 @@ export default function InfrastructureMap() {
                   <div className="animate-spin text-2xl text-cyan-400 inline-block">⟳</div>
                   <p className="text-sm">Fetching real-time threat telemetry and remediation data...</p>
                 </div>
-              ) : designApproach === "A" ? (
+              ) : activeDeckMode === "bento" ? (
                 /* ══════════════════════════════════════════════════════════════════ */
-                /* APPROACH A: DETAILED SIDE-BY-SIDE MODAL                            */
+                /* MODE: THE BENTO CLARITY DECK                                       */
+                /* ══════════════════════════════════════════════════════════════════ */
+                <BentoClarityDeck
+                  actionPlan={actionPlan}
+                  selectedFinding={selectedFinding}
+                  onQuarantine={handleQuarantine}
+                  onResolve={handleResolve}
+                />
+              ) : activeDeckMode === "detailed" ? (
+                /* ══════════════════════════════════════════════════════════════════ */
+                /* MODE: APPROACH A (DETAILED SIDE-BY-SIDE MODAL)                     */
                 /* ══════════════════════════════════════════════════════════════════ */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* LEFT COLUMN: WHAT-IF ANALYSIS */}
@@ -392,7 +479,6 @@ export default function InfrastructureMap() {
                       </h3>
                     </div>
 
-                    {/* Exploit Mechanism */}
                     <div className="bg-rose-950/20 border border-rose-900/50 rounded-xl p-4 space-y-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block">
                         Technical Exploit Mechanism
@@ -402,7 +488,6 @@ export default function InfrastructureMap() {
                       </p>
                     </div>
 
-                    {/* Attacker Capability */}
                     <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">
                         Attacker Capabilities Once Exploited
@@ -412,7 +497,6 @@ export default function InfrastructureMap() {
                       </p>
                     </div>
 
-                    {/* Mission Impact */}
                     <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                         Mission &amp; Core Business Consequence
@@ -422,7 +506,6 @@ export default function InfrastructureMap() {
                       </p>
                     </div>
 
-                    {/* Operational Disruption */}
                     <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                         Operational Service Disruption
@@ -432,7 +515,6 @@ export default function InfrastructureMap() {
                       </p>
                     </div>
 
-                    {/* Legal, Compliance & Financial */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3.5 space-y-1">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -453,7 +535,6 @@ export default function InfrastructureMap() {
                       </div>
                     </div>
 
-                    {/* Telemetry Risk Card */}
                     <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between text-xs">
                       <div>
                         <span className="text-slate-400 block">Live Exploit Telemetry (EPSS):</span>
@@ -477,7 +558,6 @@ export default function InfrastructureMap() {
                     </div>
 
                     <div className="space-y-3">
-                      {/* 01 - CISA Mandate */}
                       <div className="bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">
@@ -494,7 +574,6 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* 02 - Patch Command */}
                       <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="font-bold text-emerald-400 uppercase tracking-wide">
@@ -512,7 +591,6 @@ export default function InfrastructureMap() {
                         </pre>
                       </div>
 
-                      {/* 03 - Workaround */}
                       <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1">
                         <span className="text-xs font-bold text-slate-300 uppercase tracking-wide block">
                           03 — Configuration Hardening &amp; Workaround
@@ -522,7 +600,6 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* 04 - Firewall Rule */}
                       <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1">
                         <span className="text-xs font-bold text-slate-300 uppercase tracking-wide block">
                           04 — Network Firewall Containment Rule
@@ -532,7 +609,6 @@ export default function InfrastructureMap() {
                         </code>
                       </div>
 
-                      {/* 05 - Verification Step */}
                       <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-1">
                         <span className="text-xs font-bold text-slate-300 uppercase tracking-wide block">
                           05 — Post-Patch Validation &amp; Service Verification
@@ -546,19 +622,16 @@ export default function InfrastructureMap() {
                 </div>
               ) : (
                 /* ══════════════════════════════════════════════════════════════════ */
-                /* APPROACH B: IMPACT → REMEDIATION ARROW UI                          */
+                /* MODE: APPROACH B (IMPACT → REMEDIATION ARROW UI)                   */
                 /* ══════════════════════════════════════════════════════════════════ */
                 <div className="space-y-6">
-                  {/* Introductory Line */}
                   <p className="text-xs md:text-sm text-slate-400 border-b border-slate-800 pb-3">
                     Understand the potential impact and the actions that can help prevent or resolve it.
                   </p>
 
-                  {/* 4 Connected Impact → Remediation Rows */}
                   <div className="space-y-4">
-                    {/* ROW 1: Crash / Execution -> Apply Patch */}
+                    {/* Row 1 */}
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 bg-slate-950/50 border border-slate-800 p-4 rounded-xl hover:border-slate-700 transition-colors">
-                      {/* Left: Impact Card */}
                       <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-rose-400">
                           <span>⚠️</span>
@@ -571,13 +644,11 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* Arrow */}
                       <div className="flex items-center justify-center text-cyan-400 text-lg px-2">
                         <span className="hidden md:inline">→</span>
                         <span className="md:hidden text-xs text-slate-500">↓ ACTION:</span>
                       </div>
 
-                      {/* Right: Action Card */}
                       <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400">
                           <span>🛡️</span>
@@ -591,9 +662,8 @@ export default function InfrastructureMap() {
                       </div>
                     </div>
 
-                    {/* ROW 2: Privilege Escalation -> Workaround */}
+                    {/* Row 2 */}
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 bg-slate-950/50 border border-slate-800 p-4 rounded-xl hover:border-slate-700 transition-colors">
-                      {/* Left: Impact Card */}
                       <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-rose-400">
                           <span>⚠️</span>
@@ -606,13 +676,11 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* Arrow */}
                       <div className="flex items-center justify-center text-cyan-400 text-lg px-2">
                         <span className="hidden md:inline">→</span>
                         <span className="md:hidden text-xs text-slate-500">↓ ACTION:</span>
                       </div>
 
-                      {/* Right: Action Card */}
                       <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400">
                           <span>🛡️</span>
@@ -626,9 +694,8 @@ export default function InfrastructureMap() {
                       </div>
                     </div>
 
-                    {/* ROW 3: Lateral Infiltration -> Firewall ACL */}
+                    {/* Row 3 */}
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 bg-slate-950/50 border border-slate-800 p-4 rounded-xl hover:border-slate-700 transition-colors">
-                      {/* Left: Impact Card */}
                       <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-rose-400">
                           <span>⚠️</span>
@@ -641,13 +708,11 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* Arrow */}
                       <div className="flex items-center justify-center text-cyan-400 text-lg px-2">
                         <span className="hidden md:inline">→</span>
                         <span className="md:hidden text-xs text-slate-500">↓ ACTION:</span>
                       </div>
 
-                      {/* Right: Action Card */}
                       <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400">
                           <span>🛡️</span>
@@ -661,9 +726,8 @@ export default function InfrastructureMap() {
                       </div>
                     </div>
 
-                    {/* ROW 4: Regulatory Liability -> Validation Audit */}
+                    {/* Row 4 */}
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 bg-slate-950/50 border border-slate-800 p-4 rounded-xl hover:border-slate-700 transition-colors">
-                      {/* Left: Impact Card */}
                       <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-rose-400">
                           <span>⚠️</span>
@@ -676,13 +740,11 @@ export default function InfrastructureMap() {
                         </p>
                       </div>
 
-                      {/* Arrow */}
                       <div className="flex items-center justify-center text-cyan-400 text-lg px-2">
                         <span className="hidden md:inline">→</span>
                         <span className="md:hidden text-xs text-slate-500">↓ ACTION:</span>
                       </div>
 
-                      {/* Right: Action Card */}
                       <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-3.5 space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400">
                           <span>🛡️</span>
@@ -697,7 +759,7 @@ export default function InfrastructureMap() {
                     </div>
                   </div>
 
-                  {/* Expandable Section: View Detailed Analysis */}
+                  {/* Expandable Section */}
                   <div className="border border-slate-800 bg-slate-950/60 rounded-xl overflow-hidden">
                     <button
                       onClick={() => setShowDetailedInB(!showDetailedInB)}
@@ -752,9 +814,13 @@ export default function InfrastructureMap() {
             {/* ── MODAL FOOTER ────────────────────────────────────────────────── */}
             <div className="p-4 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
               <div className="flex items-center gap-2">
-                <span>Active Model:</span>
-                <span className="text-cyan-300 font-medium">
-                  {designApproach === "A" ? "Approach A (Detailed Investigation)" : "Approach B (Impact → Remediation Flow)"}
+                <span>Active Perspective:</span>
+                <span className="text-cyan-300 font-semibold">
+                  {activeDeckMode === "bento"
+                    ? "The Bento Clarity Deck"
+                    : activeDeckMode === "detailed"
+                    ? "Approach A (Detailed Investigation)"
+                    : "Approach B (Impact → Action Flow)"}
                 </span>
                 {actionPlan?.reference_url && (
                   <a
