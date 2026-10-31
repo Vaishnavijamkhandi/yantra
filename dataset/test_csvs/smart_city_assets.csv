@@ -1,0 +1,5 @@
+asset_name,asset_type,ip_address,operating_system,software_name,software_version,criticality,exposure,department,environment
+Traffic Signal Controller,Industrial Controller,172.20.44.11,Embedded Linux,OpenSSH,8.8p1,Critical,Internal,Traffic Control,Production
+Public WiFi Controller,Gateway,172.20.44.21,Ubuntu 20.04,nginx,1.26.0,High,External,Public Services,Production
+Smart Meter Aggregator,Server,172.20.44.33,CentOS 8,Redis,7.0.12,High,Internal,Utilities,Production
+Emergency Response Dashboard,Application,172.20.44.45,Windows Server 2022,Microsoft IIS,10.0,Critical,Internal,Public Safety,Production

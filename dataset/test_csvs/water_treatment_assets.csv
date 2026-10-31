@@ -1,0 +1,5 @@
+asset_name,asset_type,ip_address,operating_system,software_name,software_version,criticality,exposure,department,environment
+Water Pump PLC,Industrial Controller,192.168.57.11,RTOS,OpenPLC,5.2.1,Critical,Internal,Operations,Production
+Treatment Control Server,Server,192.168.57.22,Ubuntu Server 22.04,Java Runtime,17.0.8,High,Internal,Water Treatment,Production
+Flow Sensor Network,IoT,192.168.57.31,Embedded Linux,Lightweight MQTT Broker,2.4.0,Medium,Internal,Field Devices,Production
+Laboratory Analytics App,Application,192.168.57.44,CentOS 7,Python,3.11.2,Medium,Internal,Quality Lab,Production

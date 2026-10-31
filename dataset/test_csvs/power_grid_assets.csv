@@ -1,0 +1,5 @@
+asset_name,asset_type,ip_address,operating_system,software_name,software_version,criticality,exposure,department,environment
+SCADA Gateway,Gateway,172.16.10.12,Windows Server 2019,OpenSSH,8.9p1,Critical,External,Grid Operations,Production
+Transformer Controller,Industrial Controller,172.16.10.33,Linux RT,Modbus Gateway,2.1.8,Critical,Internal,Substation,Production
+Relay Monitoring Node,Server,172.16.10.44,Ubuntu 20.04,NGINX,1.25.4,High,Internal,Transmission,Production
+Load Balancer,Network Device,172.16.10.50,Cisco IOS,IOS XE,17.9,High,Partner,Distribution,Production

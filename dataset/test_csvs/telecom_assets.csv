@@ -1,0 +1,5 @@
+asset_name,asset_type,ip_address,operating_system,software_name,software_version,criticality,exposure,department,environment
+Core Switch,Network Device,10.30.0.4,IOS XE,NetworkOS,17.12,Critical,Internal,Core Network,Production
+Cell Tower Gateway,Gateway,10.30.0.8,Debian 12,Apache HTTPD,2.4.57,High,External,Radio Access,Production
+Subscriber Database,Database,10.30.0.17,Ubuntu 22.04,PostgreSQL,15.3,Critical,Internal,Subscriber Management,Production
+Customer Support Portal,Application,10.30.0.20,Windows Server 2019,SQL Server,2019,High,External,Customer Service,Production

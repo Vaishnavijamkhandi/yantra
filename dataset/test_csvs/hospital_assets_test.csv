@@ -1,0 +1,5 @@
+asset_name,asset_type,ip_address,operating_system,software_name,software_version,criticality,exposure,department,environment
+Patient Registry Server,Server,10.10.15.12,Ubuntu Server 22.04,PostgreSQL,14.5,High,Internal,Patient Services,Production
+ICU Monitor 01,Medical Device,10.10.40.18,Embedded Linux,RealTimeOS,3.2,Critical,Internal,ICU,Production
+MRI Workstation,Computer,10.10.45.21,Windows 11,Windows Defender,1.0,High,Internal,Radiology,Production
+Pharmacy Controller,Application,10.10.16.44,CentOS 7,Apache Tomcat,9.0.75,High,Internal,Pharmacy,Production
