@@ -191,3 +191,4 @@ def seed_curated_vulnerabilities(db: Session) -> dict:
             inserted += 1
     db.commit()
     return {"inserted": inserted, "updated": updated, "total": len(CURATED_CVES)}
+
