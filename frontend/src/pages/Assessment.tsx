@@ -134,7 +134,7 @@ export default function Assessment() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-200">Vulnerability Assessment &amp; Actions</h1>
+          <h1 className="text-2xl font-bold text-slate-800 font-semibold">Vulnerability Assessment &amp; Actions</h1>
           <p className="text-slate-400 text-sm">
             Phase 2: Automated software matching engine &amp; operational mitigation playbooks
           </p>
@@ -166,26 +166,26 @@ export default function Assessment() {
       {/* Summary Stat Cards */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-gray-400">Total Findings</span>
-            <p className="text-3xl font-bold text-slate-100 mt-1">
+            <p className="text-3xl font-black text-slate-900 mt-1">
               {summary.total_asset_vulnerability_links}
             </p>
             <span className="text-xs text-slate-400">Active CVE matches</span>
           </div>
-          <div className="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-indigo-600">Affected Assets</span>
             <p className="text-3xl font-bold text-indigo-700 mt-1">{summary.assets_affected}</p>
             <span className="text-xs text-slate-400">Require remediation</span>
           </div>
-          <div className="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-red-600">Critical CVEs</span>
             <p className="text-3xl font-bold text-red-700 mt-1">
               {summary.by_severity["CRITICAL"] || 0}
             </p>
             <span className="text-xs text-slate-400">CVSS 9.0 - 10.0</span>
           </div>
-          <div className="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-orange-600">High CVEs</span>
             <p className="text-3xl font-bold text-orange-700 mt-1">
               {summary.by_severity["HIGH"] || 0}
@@ -196,7 +196,7 @@ export default function Assessment() {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800 flex items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/90 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             Filter Severity:
@@ -204,7 +204,7 @@ export default function Assessment() {
           <select
             value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
-            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">All Severities</option>
             <option value="CRITICAL">Critical</option>
@@ -219,7 +219,7 @@ export default function Assessment() {
       </div>
 
       {/* Findings & Actions Table */}
-      <div className="bg-slate-900 rounded-xl shadow-lg overflow-x-auto border border-slate-800">
+      <div className="bg-white rounded-3xl shadow-sm overflow-x-auto border border-slate-200/90">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Loading findings...</div>
         ) : results.length === 0 ? (
@@ -231,7 +231,7 @@ export default function Assessment() {
           </div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-950 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
+            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Asset</th>
                 <th className="px-4 py-3">Matched Software</th>
@@ -242,22 +242,22 @@ export default function Assessment() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {results.map((r) => {
                 const sev = r.vulnerability.severity?.toUpperCase() || "UNKNOWN";
                 return (
-                  <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-slate-300 whitespace-nowrap">
+                  <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
                       <Link
                         to={`/assets/${r.asset_id}`}
-                        className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-semibold"
+                        className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline flex items-center gap-1 font-semibold"
                       >
                         <span>Asset #{r.asset_id}</span>
                         <span className="text-xs text-gray-400">↗</span>
                       </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="font-medium text-slate-200">
+                      <span className="font-medium text-slate-800 font-semibold">
                         {r.matched_software || "System"}
                       </span>
                       {r.matched_version && (
@@ -270,13 +270,13 @@ export default function Assessment() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
-                          SEVERITY_BADGES[sev] ?? "bg-gray-100 text-slate-300 border-gray-300"
+                          SEVERITY_BADGES[sev] ?? "bg-gray-100 text-slate-600 border-gray-300"
                         }`}
                       >
                         {sev}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-slate-200 whitespace-nowrap">
+                    <td className="px-4 py-3 font-semibold text-slate-800 font-semibold whitespace-nowrap">
                       {r.vulnerability.cvss_score !== null && r.vulnerability.cvss_score !== undefined ? (
                         <div className="flex items-center gap-1">
                           <span
@@ -296,7 +296,7 @@ export default function Assessment() {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-300 max-w-xs line-clamp-2">
+                    <td className="px-4 py-3 text-slate-600 max-w-xs line-clamp-2">
                       {r.vulnerability.description}
                     </td>
 
@@ -354,17 +354,17 @@ export default function Assessment() {
                   <span
                     className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
                       SEVERITY_BADGES[activeFinding.vulnerability.severity?.toUpperCase() || ""] ??
-                      "bg-gray-100 text-slate-300 border-gray-300"
+                      "bg-gray-100 text-slate-600 border-gray-300"
                     }`}
                   >
                     {activeFinding.vulnerability.severity} (CVSS {activeFinding.vulnerability.cvss_score ?? "N/A"})
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-200 mt-1">
+                <h3 className="text-lg font-bold text-slate-800 font-semibold mt-1">
                   Security Action Profile: {actionPlan?.asset_name || `Asset #${activeFinding.asset_id}`}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Component: <strong className="text-slate-300">{activeFinding.matched_software || "Operating System"}</strong>
+                  Component: <strong className="text-slate-600">{activeFinding.matched_software || "Operating System"}</strong>
                   {activeFinding.matched_version && ` (v${activeFinding.matched_version})`}
                 </p>
               </div>
@@ -471,7 +471,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                           Emergency Workaround / Hardening Rule:
                         </span>
-                        <p className="text-sm text-slate-300">{actionPlan.remedy.workaround}</p>
+                        <p className="text-sm text-slate-600">{actionPlan.remedy.workaround}</p>
                       </div>
 
                       {/* Firewall Containment */}
@@ -479,7 +479,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                           Firewall Isolation Rule:
                         </span>
-                        <code className="block bg-gray-50 p-2 rounded text-xs text-slate-200 font-mono">
+                        <code className="block bg-gray-50 p-2 rounded text-xs text-slate-800 font-semibold font-mono">
                           {actionPlan.remedy.firewall_rule}
                         </code>
                       </div>
@@ -522,7 +522,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
                           How Attackers Exploit It (Technical Vector):
                         </span>
-                        <p className="text-sm text-slate-200 leading-relaxed">
+                        <p className="text-sm text-slate-800 font-semibold leading-relaxed">
                           {actionPlan.what_if_not_cured.exploit_mechanism}
                         </p>
                       </div>
@@ -532,7 +532,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                           Attacker Capabilities Once Compromised:
                         </span>
-                        <p className="text-sm text-slate-200 font-medium">
+                        <p className="text-sm text-slate-800 font-semibold font-medium">
                           {actionPlan.what_if_not_cured.attacker_capability}
                         </p>
                       </div>
@@ -569,7 +569,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                           Operational Service Disruption:
                         </span>
-                        <p className="text-sm text-slate-200 leading-relaxed">
+                        <p className="text-sm text-slate-800 font-semibold leading-relaxed">
                           {actionPlan.consequences.operational_impact}
                         </p>
                       </div>
@@ -579,7 +579,7 @@ export default function Assessment() {
                         <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                           Legal, Compliance & Regulatory Liability:
                         </span>
-                        <p className="text-sm text-slate-200 font-medium leading-relaxed">
+                        <p className="text-sm text-slate-800 font-semibold font-medium leading-relaxed">
                           {actionPlan.consequences.legal_regulatory}
                         </p>
                       </div>
@@ -628,7 +628,7 @@ export default function Assessment() {
                 )}
                 <button
                   onClick={() => setActiveFinding(null)}
-                  className="bg-gray-200 hover:bg-gray-300 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                  className="bg-gray-200 hover:bg-gray-300 text-slate-600 text-xs font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
                 >
                   Close
                 </button>

@@ -162,7 +162,7 @@ export default function Dashboard() {
               Phase 3 &amp; 4 Active
             </span>
           </div>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Deterministic risk scoring, vulnerability intelligence, and explainable prioritization for IT.
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function Dashboard() {
           <button
             onClick={handleSeedData}
             disabled={actionBusy}
-            className="px-4 py-2 text-xs font-semibold text-slate-300 bg-white border border-gray-300 rounded-lg hover:bg-slate-800/60 shadow-sm transition"
+            className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-gray-300 rounded-lg hover:bg-slate-50 shadow-sm transition"
           >
             📥 Seed Curated CVEs
           </button>
@@ -211,18 +211,18 @@ export default function Dashboard() {
 
       {/* KPI Metric Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all">
           <div className="flex items-center justify-between text-gray-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Assets</span>
             <span className="text-lg">🖥️</span>
           </div>
-          <div className="text-3xl font-extrabold text-white">{summary?.total_assets ?? 0}</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <div className="text-3xl font-black text-slate-900">{summary?.total_assets ?? 0}</div>
+          <p className="text-xs text-slate-500 mt-1">
             {summary?.assessed_assets ?? 0} assessed for risk
           </p>
         </div>
 
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all">
           <div className="flex items-center justify-between text-gray-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Vulnerable Assets</span>
             <span className="text-lg">🎯</span>
@@ -230,10 +230,10 @@ export default function Dashboard() {
           <div className="text-3xl font-extrabold text-indigo-600">
             {summary?.assets_with_confirmed_matches ?? 0}
           </div>
-          <p className="text-xs text-slate-400 mt-1">With confirmed CVE matches</p>
+          <p className="text-xs text-slate-500 mt-1">With confirmed CVE matches</p>
         </div>
 
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all">
           <div className="flex items-center justify-between text-gray-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Critical Risk</span>
             <span className="text-lg">🚨</span>
@@ -241,10 +241,10 @@ export default function Dashboard() {
           <div className="text-3xl font-extrabold text-red-600">
             {summary?.critical_risk_count ?? 0}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Score ≥ 80.0 (Immediate SLA)</p>
+          <p className="text-xs text-slate-500 mt-1">Score ≥ 80.0 (Immediate SLA)</p>
         </div>
 
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all">
           <div className="flex items-center justify-between text-gray-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Fleet Avg Risk</span>
             <span className="text-lg">📊</span>
@@ -253,16 +253,16 @@ export default function Dashboard() {
             {summary?.average_risk_score ?? 0}
             <span className="text-sm font-medium text-gray-400">/100</span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Across all monitored enterprise assets</p>
+          <p className="text-xs text-slate-500 mt-1">Across all monitored enterprise assets</p>
         </div>
       </div>
 
       {/* Visualizations Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart 1: Fleet Risk Tier Distribution */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg lg:col-span-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
               Risk Tier Distribution
             </h3>
             <span className="text-xs text-gray-400">Latest Assessment</span>
@@ -280,10 +280,10 @@ export default function Dashboard() {
               return (
                 <div key={tier.label}>
                   <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">{tier.label}</span>
+                    <span className="text-slate-700">{tier.label}</span>
                     <span className={tier.text}>{tier.count} assets ({pct}%)</span>
                   </div>
-                  <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${tier.color} transition-all duration-500`}
                       style={{ width: `${pct}%` }}
@@ -294,15 +294,15 @@ export default function Dashboard() {
             })}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-800 text-xs text-slate-400 leading-relaxed">
+          <div className="mt-6 pt-4 border-t border-slate-200 text-xs text-slate-500 leading-relaxed">
             💡 Calculated using deterministic formula: 40% Severity + 20% Exploitability + 20% Exposure + 20% Criticality.
           </div>
         </div>
 
         {/* Chart 2: Department Risk Heatmap */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg lg:col-span-2">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
               Department-Wise Accumulated Risk
             </h3>
             <span className="text-xs text-gray-400">Clinical &amp; Operational Posture</span>
@@ -316,10 +316,10 @@ export default function Dashboard() {
             <div className="space-y-4">
               {departments.map((dept) => (
                 <div key={dept.department} className="flex items-center gap-4">
-                  <div className="w-36 text-xs font-bold text-slate-300 truncate">
+                  <div className="w-36 text-xs font-bold text-slate-800 font-bold truncate">
                     {dept.department}
                   </div>
-                  <div className="flex-1 bg-slate-800 h-4 rounded-full overflow-hidden relative">
+                  <div className="flex-1 bg-slate-100 h-4 rounded-full overflow-hidden relative">
                     <div
                       className={`h-full transition-all duration-500 ${
                         dept.average_risk >= 70
@@ -352,14 +352,14 @@ export default function Dashboard() {
       </div>
 
       {/* Dynamic Asset Priority Queue Table */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-slate-800 space-y-4">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all overflow-hidden">
+        <div className="p-6 border-b border-slate-200 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-100">
                 Asset Prioritization Queue
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Assets ranked dynamically by risk score. Focus remediation on top items first.
               </p>
             </div>
@@ -393,14 +393,14 @@ export default function Dashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by asset name, department, or hardware type..."
-                className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950/50"
+                className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
               />
             </div>
 
             <select
               value={deptFilter}
               onChange={(e) => setDeptFilter(e.target.value)}
-              className="px-3 py-2 text-xs border border-gray-200 rounded-xl bg-slate-950/50 text-slate-300"
+              className="px-3 py-2 text-xs border border-gray-200 rounded-xl bg-white/50 text-slate-700"
             >
               <option value="ALL">All Departments</option>
               {uniqueDepartments.map((d) => (
@@ -415,7 +415,7 @@ export default function Dashboard() {
         {/* Priority Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/75 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+            <thead className="bg-white/75 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4 w-14">Rank</th>
                 <th className="py-3 px-4">Asset Name</th>
@@ -428,7 +428,7 @@ export default function Dashboard() {
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {filteredRisks.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-gray-400">
@@ -457,12 +457,12 @@ export default function Dashboard() {
                           ID: {risk.asset_id}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300">
+                      <td className="py-3.5 px-4 text-slate-700">
                         {risk.department || "Unassigned"}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-400">{risk.asset_type}</td>
+                      <td className="py-3.5 px-4 text-slate-500">{risk.asset_type}</td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-slate-300">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-slate-700">
                           {risk.factors?.exposure === 100 ? "Internet-Facing" : "Internal"}
                         </span>
                       </td>
@@ -535,7 +535,7 @@ export default function Dashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Risk Factor Analysis &amp; Remediation
@@ -543,23 +543,23 @@ export default function Dashboard() {
                 <h3 className="text-xl font-bold text-slate-100">
                   {selectedRisk.asset_name}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   {selectedRisk.asset_type} · {selectedRisk.department || "General"}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedRisk(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-slate-400"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-slate-500"
               >
                 ✕
               </button>
             </div>
 
             {/* Score & Tier Banner */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-gray-200 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-white border border-gray-200 flex items-center justify-between">
               <div>
                 <span className="text-xs text-gray-400">Current Risk Score</span>
-                <div className="text-3xl font-extrabold text-white">
+                <div className="text-3xl font-black text-slate-900">
                   {simulatedRemediation
                     ? Math.round(selectedRisk.risk_score * 0.45)
                     : selectedRisk.risk_score}
@@ -584,7 +584,7 @@ export default function Dashboard() {
 
             {/* Contributing Factor Breakdown */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
                 Factor Contribution Breakdown (0–100)
               </h4>
               <div className="space-y-3">
@@ -620,12 +620,12 @@ export default function Dashboard() {
 
             {/* Remediation Guidance */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                 Recommended Remediation Actions
               </h4>
               <ul className="space-y-2">
                 {selectedRisk.recommendations?.map((rec, i) => (
-                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                  <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
                     <span className="text-blue-600 font-bold">✓</span>
                     <span>{rec}</span>
                   </li>
@@ -636,14 +636,14 @@ export default function Dashboard() {
             {/* What-If Remediation Simulator */}
             <div className="p-4 bg-slate-900 text-white rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   What-If Remediation Simulation
                 </span>
-                <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
+                <span className="text-xs bg-slate-800 text-slate-700 px-2 py-0.5 rounded">
                   Predictive Impact
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Simulate the effect of applying the latest security patches to this asset.
               </p>
               <button
@@ -661,7 +661,7 @@ export default function Dashboard() {
             </div>
 
             {/* Drawer Actions */}
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
               <Link
                 to={`/assets/${selectedRisk.asset_id}`}
                 className="text-xs text-blue-600 hover:underline font-semibold"
@@ -671,7 +671,7 @@ export default function Dashboard() {
               <button
                 onClick={() => handleReassessSingle(selectedRisk.asset_id)}
                 disabled={actionBusy}
-                className="px-3 py-1.5 text-xs font-bold text-slate-300 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
               >
                 🔄 Re-assess Risk
               </button>

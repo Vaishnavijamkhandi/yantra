@@ -84,7 +84,7 @@ export default function Vulnerabilities() {
       {/* Header and Action Buttons */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">NVD Vulnerability Database</h1>
+          <h1 className="text-2xl font-black text-slate-900">NVD Vulnerability Database</h1>
           <p className="text-slate-400 text-sm">
             Phase 2: National Vulnerability Database (NVD) v2.0 sync &amp; CVE repository
           </p>
@@ -125,23 +125,23 @@ export default function Vulnerabilities() {
       {/* Stats bar */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-slate-500">Total CVEs</span>
-            <p className="text-2xl font-bold text-slate-100 mt-1">{stats.total}</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">{stats.total}</p>
           </div>
-          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-red-600">Critical</span>
             <p className="text-2xl font-bold text-red-700 mt-1">{stats.by_severity["CRITICAL"] || 0}</p>
           </div>
-          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-orange-600">High</span>
             <p className="text-2xl font-bold text-orange-700 mt-1">{stats.by_severity["HIGH"] || 0}</p>
           </div>
-          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-yellow-600">Medium</span>
             <p className="text-2xl font-bold text-yellow-700 mt-1">{stats.by_severity["MEDIUM"] || 0}</p>
           </div>
-          <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800">
+          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90">
             <span className="text-xs uppercase font-semibold text-green-600">Low</span>
             <p className="text-2xl font-bold text-green-700 mt-1">{stats.by_severity["LOW"] || 0}</p>
           </div>
@@ -149,18 +149,18 @@ export default function Vulnerabilities() {
       )}
 
       {/* Search and Filters */}
-      <div className="bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/90 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <input
           type="text"
           placeholder="🔍 Search CVE ID, description, product..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="">All Severities</option>
           <option value="CRITICAL">Critical (CVSS 9.0 - 10.0)</option>
@@ -171,7 +171,7 @@ export default function Vulnerabilities() {
         <select
           value={minScore ?? ""}
           onChange={(e) => setMinScore(e.target.value ? parseFloat(e.target.value) : undefined)}
-          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="">Any CVSS Score</option>
           <option value="9.0">Score &gt;= 9.0</option>
@@ -181,7 +181,7 @@ export default function Vulnerabilities() {
       </div>
 
       {/* CVE Table */}
-      <div className="bg-slate-900 rounded-xl shadow-lg overflow-x-auto border border-slate-800">
+      <div className="bg-white rounded-3xl shadow-sm overflow-x-auto border border-slate-200/90">
         {loading ? (
           <div className="p-12 text-center text-slate-500">Loading vulnerabilities...</div>
         ) : vulns.length === 0 ? (
@@ -193,7 +193,7 @@ export default function Vulnerabilities() {
           </div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-950 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
+            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">CVE ID</th>
                 <th className="px-4 py-3">Severity</th>
@@ -203,11 +203,11 @@ export default function Vulnerabilities() {
                 <th className="px-4 py-3">Reference</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {vulns.map((v) => {
                 const sev = v.severity?.toUpperCase() || "UNKNOWN";
                 return (
-                  <tr key={v.id} className="hover:bg-slate-800/50 transition-colors">
+                  <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-4 py-3 font-mono font-semibold text-blue-700 whitespace-nowrap">
                       {v.cve_id}
                     </td>

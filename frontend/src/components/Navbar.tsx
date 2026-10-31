@@ -8,10 +8,10 @@ export default function Navbar() {
     return (
       <Link
         to={to}
-        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
           isActive
-            ? "bg-slate-800 text-cyan-300 border border-slate-700 shadow-sm"
-            : "text-slate-400 hover:bg-slate-850 hover:text-slate-200"
+            ? "bg-indigo-50 text-indigo-700 shadow-xs border border-indigo-200/80"
+            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
         }`}
       >
         {label}
@@ -20,16 +20,21 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-slate-900/90 border-b border-slate-800 text-white sticky top-0 z-50 backdrop-blur-md">
+    <nav className="bg-white/95 border-b border-slate-200 text-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
       <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 ring-4 ring-cyan-500/20" />
-            <span className="text-base font-bold tracking-tight text-white font-mono">CyberSaathi</span>
+        <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition-opacity">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-xs shadow-sm ring-2 ring-indigo-500/20">
+            CS
           </div>
-          <span className="hidden sm:inline-block text-slate-400 text-[11px] px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 font-medium">
-            Cybersecurity Risk &amp; Assessment Platform
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm font-extrabold tracking-tight text-slate-900 font-sans leading-none flex items-center gap-1.5">
+              <span>CyberSaathi</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="System Operational" />
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium tracking-tight mt-0.5">
+              Cyber-Risk &amp; Vulnerability Platform
+            </span>
+          </div>
         </Link>
         <div className="flex items-center gap-1 sm:gap-1.5">
           {navLink("/", "Dashboard")}
