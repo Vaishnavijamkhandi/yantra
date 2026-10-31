@@ -11,7 +11,7 @@ import MLInsights from "./pages/MLInsights";
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+      <div className="min-h-screen bg-[#fbf9f5] text-stone-900 flex flex-col font-sans selection:bg-[#800020] selection:text-white">
         <Navbar />
         <main className="flex-1">
           <Routes>

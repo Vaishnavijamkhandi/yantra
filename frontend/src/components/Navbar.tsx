@@ -8,10 +8,10 @@ export default function Navbar() {
     return (
       <Link
         to={to}
-        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
           isActive
-            ? "bg-indigo-50 text-indigo-700 shadow-xs border border-indigo-200/80"
-            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+            ? "bg-[#800020] text-white shadow-xs"
+            : "text-stone-700 hover:text-[#800020] hover:bg-[#ede5d8]"
         }`}
       >
         {label}
@@ -20,29 +20,38 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white/95 border-b border-slate-200 text-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-xs">
-      <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
+    <nav className="bg-[#f5f0e6] border-b border-[#e5ded0] sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition-opacity">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-xs shadow-sm ring-2 ring-indigo-500/20">
-            CS
+          {/* Maroon Emblem */}
+          <div className="w-8 h-8 rounded-lg bg-[#800020] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+            🛡️
           </div>
+
           <div className="flex flex-col">
-            <span className="text-sm font-extrabold tracking-tight text-slate-900 font-sans leading-none flex items-center gap-1.5">
-              <span>CyberSaathi</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="System Operational" />
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium tracking-tight mt-0.5">
-              Cyber-Risk &amp; Vulnerability Platform
+            <div className="flex items-center gap-2">
+              <span className="text-base font-black tracking-tight text-[#800020] font-mono">
+                CyberSaathi
+              </span>
+              <span className="text-stone-400 font-mono text-xs">/</span>
+              <span className="text-xs font-bold text-stone-800">
+                Risk Platform
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-600" title="Active Platform Telemetry" />
+            </div>
+            <span className="text-[10px] text-stone-500 font-medium tracking-wide uppercase">
+              Critical Infrastructure Assessment &amp; Remediation
             </span>
           </div>
         </Link>
-        <div className="flex items-center gap-1 sm:gap-1.5">
+
+        <div className="flex items-center gap-1 sm:gap-2">
           {navLink("/", "Dashboard")}
           {navLink("/assets", "Assets")}
-          {navLink("/vulnerabilities", "CVE Database")}
+          {navLink("/vulnerabilities", "CVE Intel")}
           {navLink("/assessment", "Assessment")}
           {navLink("/infrastructure", "Infrastructure Map")}
-          {navLink("/ml", "ML Insights")}
+          {navLink("/ml", "Risk Prediction")}
         </div>
       </div>
     </nav>

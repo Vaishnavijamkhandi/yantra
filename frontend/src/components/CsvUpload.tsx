@@ -6,17 +6,16 @@ interface Props {
 }
 
 const SAMPLE_CSV_CONTENT = `hostname,device_type,ip,os,priority,network_exposure,business_unit,stage,software
+substation-alpha-scada,IoT,192.168.10.15,Embedded Linux,Critical,Internal,Power Grid & Energy,Production,modbus-daemon;openssh-server
+water-treatment-plc-01,IoT,192.168.20.10,Embedded Linux,Critical,Internal,Water Treatment Utilities,Production,modbus-daemon;busybox
+telecom-5g-core-router,Router,203.0.113.1,Cisco IOS-XE,Critical,External,Telecommunications,Production,cisco-ios-xe;openssh-server
+hospital-icu-monitoring,Computer,10.0.6.15,Windows 10 Enterprise,Critical,Internal,Healthcare Critical Care,Production,cerner-client;office-365
+metro-signaling-gateway,Server,10.0.14.22,Red Hat Enterprise Linux 8,Critical,Internal,Transit & Rail Signaling,Production,nginx;openssh-server
+smartcity-surveillance-hub,Server,10.0.30.50,Ubuntu 22.04 LTS,High,External,Smart City IoT Hub,Production,nginx;nodejs;docker
 auth-gateway-prod,Server,10.0.1.15,Ubuntu 22.04 LTS,Critical,External,Identity & Security,Production,nginx;openssh-server
 payments-api-cluster,Server,10.0.2.20,Red Hat Enterprise Linux 9,Critical,External,Fintech & Payments,Production,spring-boot;java-17
 customer-core-db,Database,10.0.2.25,PostgreSQL 16,Critical,Internal,Core Banking,Production,postgresql
-order-processing-svc,Server,10.0.3.10,Debian 12,High,Internal,E-Commerce & Orders,Production,nginx;nodejs
-perimeter-edge-firewall,Firewall,203.0.113.1,Cisco ASA,Critical,External,Infrastructure,Production,cisco-ios-xe
 corporate-vpn-gateway,Router,203.0.113.5,OpenWRT,High,External,Remote Access,Production,openvpn
-analytics-data-warehouse,Database,10.0.4.50,Ubuntu 22.04,Medium,Internal,Data Intelligence,Production,clickhouse
-finance-ledger-workstation,Computer,10.0.5.101,Windows 11 Enterprise,High,Internal,Finance & Audit,Production,office-365
-factory-scada-controller,IoT,192.168.10.12,Embedded Linux,Critical,Internal,Manufacturing Operations,Production,modbus-daemon
-dev-testing-sandbox,Server,10.0.9.99,Ubuntu 20.04,Low,Internal,Engineering R&D,Development,docker
-ehr-clinical-workstation,Computer,10.0.6.15,Windows 10 Enterprise,High,Internal,Healthcare Clinical,Production,cerner-client
 `;
 
 export default function CsvUpload({ onSuccess }: Props) {
@@ -55,7 +54,7 @@ export default function CsvUpload({ onSuccess }: Props) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "enterprise_assets_template.csv");
+    link.setAttribute("download", "infrastructure_assets_template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -63,49 +62,49 @@ export default function CsvUpload({ onSuccess }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 text-stone-900">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-              Universal CSV Asset Import
+            <h3 className="text-xs font-mono font-bold text-[#800020] uppercase tracking-wider">
+              Universal Infrastructure CSV Ingestion
             </h3>
             <button
               type="button"
               onClick={() => setShowGuide(!showGuide)}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold hover:underline cursor-pointer"
+              className="text-xs font-mono text-stone-600 hover:text-[#800020] underline cursor-pointer"
             >
-              {showGuide ? "Hide Column Specs" : "View Supported Columns"}
+              {showGuide ? "[Hide Specs]" : "[View Schema Specs]"}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Accepts infrastructure CSVs from any industry (Fintech, Tech, Healthcare, Retail, Manufacturing).
+          <p className="text-xs text-stone-500 mt-0.5">
+            Ingest infrastructure inventories across Power Grids, Water Treatment, Telecom, Healthcare, and Smart City IoT.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleDownloadTemplate}
-          className="self-start md:self-auto text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-md border border-slate-300 transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Download pre-formatted universal enterprise CSV template"
+          className="self-start md:self-auto text-xs font-mono font-bold bg-[#faf7f2] hover:bg-[#ede5d8] text-[#800020] border border-[#d6ccbe] px-3.5 py-1.5 rounded-xl transition shadow-2xs flex items-center gap-2 cursor-pointer"
+          title="Download sample infrastructure CSV template"
         >
-          <span>Download Sample CSV Template</span>
+          <span>📥 Sample CSV Template</span>
         </button>
       </div>
 
       {showGuide && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 space-y-1">
-          <p className="font-semibold text-slate-700">Supported CSV Header Aliases (Case-insensitive):</p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1 list-disc list-inside">
-            <li><strong className="text-slate-800">Hostname / Name:</strong> hostname, name, device_name, host</li>
-            <li><strong className="text-slate-800">IP Address:</strong> ip, ip_address, address, ipv4</li>
-            <li><strong className="text-slate-800">Operating System:</strong> os, operating_system, platform</li>
-            <li><strong className="text-slate-800">Asset Type:</strong> type, asset_type, device_type, role</li>
-            <li><strong className="text-slate-800">Department / Unit:</strong> department, business_unit, dept, team</li>
-            <li><strong className="text-slate-800">Criticality:</strong> priority, criticality, tier, severity</li>
-            <li><strong className="text-slate-800">Network Exposure:</strong> exposure, network_exposure, zone</li>
-            <li><strong className="text-slate-800">Lifecycle Stage:</strong> environment, stage, env</li>
-            <li><strong className="text-slate-800">Software Packages:</strong> software, packages, applications</li>
+        <div className="bg-[#faf7f2] border border-[#e5ded0] rounded-xl p-3.5 text-xs text-stone-700 font-mono space-y-2">
+          <p className="font-bold text-[#800020]">Supported CSV Header Aliases (Case-insensitive):</p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-[11px]">
+            <li><strong className="text-stone-900">Hostname / Asset:</strong> hostname, name, host</li>
+            <li><strong className="text-stone-900">IP Address:</strong> ip, ip_address, ipv4</li>
+            <li><strong className="text-stone-900">Operating System:</strong> os, operating_system</li>
+            <li><strong className="text-stone-900">Asset Type:</strong> type, asset_type, role</li>
+            <li><strong className="text-stone-900">Sector / Dept:</strong> department, business_unit</li>
+            <li><strong className="text-stone-900">Criticality:</strong> priority, criticality</li>
+            <li><strong className="text-stone-900">Network Zone:</strong> exposure, network_exposure</li>
+            <li><strong className="text-stone-900">Environment:</strong> environment, stage</li>
+            <li><strong className="text-stone-900">Software:</strong> software, applications</li>
           </ul>
         </div>
       )}
@@ -115,23 +114,23 @@ export default function CsvUpload({ onSuccess }: Props) {
           type="file"
           accept=".csv"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+          className="text-xs font-mono text-stone-700 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border file:border-[#d6ccbe] file:bg-[#faf7f2] file:text-stone-800 hover:file:bg-[#ede5d8] cursor-pointer"
         />
         <button
           onClick={handleUpload}
           disabled={uploading || !file}
-          className="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold disabled:opacity-50 transition-colors cursor-pointer whitespace-nowrap"
+          className="bg-[#800020] hover:bg-[#66001a] text-white px-5 py-2 rounded-xl text-xs font-mono font-bold disabled:opacity-50 transition shadow-xs cursor-pointer whitespace-nowrap uppercase tracking-wider"
         >
-          {uploading ? "Importing Assets..." : "Upload & Parse CSV"}
+          {uploading ? "Parsing CSV..." : "⚡ Upload & Ingest"}
         </button>
       </div>
 
       {result && (
         <div
-          className={`p-3 rounded-lg text-xs font-medium whitespace-pre-line border ${
+          className={`p-3 rounded-xl text-xs font-mono font-medium whitespace-pre-line border ${
             result.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
+              : "bg-red-50 border-red-200 text-red-800"
           }`}
         >
           {result.text}
