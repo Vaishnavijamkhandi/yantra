@@ -234,3 +234,45 @@ export interface MLModelCard {
   metrics: Record<string, unknown> | null;
   feature_names: string[];
 }
+
+
+// ── 3-Part Action Profile Types ──────────────────────────────────────────────
+
+export interface RemedyInfo {
+  title: string;
+  cisa_mandate?: string | null;
+  due_date?: string | null;
+  patch_command: string;
+  workaround: string;
+  firewall_rule: string;
+  verification_step: string;
+}
+
+export interface WhatIfNotCuredInfo {
+  exploit_mechanism: string;
+  attacker_capability: string;
+  epss_probability: string;
+  epss_percentile?: number;
+  weaponized_status: string;
+  severity_level: string;
+}
+
+export interface ConsequencesInfo {
+  domain_category?: string;
+  primary_impact?: string;
+  clinical_impact: string;
+  operational_impact: string;
+  legal_regulatory: string;
+  financial_cost: string;
+}
+
+export interface ActionPlanProfile {
+  cve_id: string;
+  asset_name: string;
+  software: string;
+  cvss_score: number | null;
+  reference_url?: string | null;
+  remedy: RemedyInfo;
+  what_if_not_cured: WhatIfNotCuredInfo;
+  consequences: ConsequencesInfo;
+}

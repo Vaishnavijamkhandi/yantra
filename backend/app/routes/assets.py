@@ -20,7 +20,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/assets", tags=["Assets"])
 
-REQUIRED_CSV_COLUMNS = {"asset_name", "asset_type", "criticality", "exposure"}
+# Universal column aliases to support CSV exports from ANY organization, cloud provider, or CMDB
+COLUMN_ALIASES: dict[str, list[str]] = {
+    "asset_name": ["asset_name", "hostname", "host_name", "name", "device_name", "asset", "system_name", "server_name", "endpoint", "title", "host"],
+    "asset_type": ["asset_type", "type", "device_type", "category", "hardware_type", "role", "kind", "asset_category"],
+    "ip_address": ["ip_address", "ip", "address", "host_ip", "network_address", "ipv4", "ip_addr", "private_ip", "public_ip"],
+    "operating_system": ["operating_system", "os", "platform", "os_version", "system", "os_name", "operating_system_version"],
+    "criticality": ["criticality", "priority", "business_impact", "severity", "tier", "critical", "importance", "business_criticality"],
+    "exposure": ["exposure", "network_exposure", "facing", "access_type", "zone", "network_zone", "public_facing", "internet_facing"],
+    "department": ["department", "business_unit", "team", "dept", "division", "organization", "owner", "group", "cost_center", "unit"],
+    "environment": ["environment", "env", "stage", "deployment_env", "lifecycle", "env_type"],
+    "software": ["software", "installed_software", "packages", "applications", "services", "apps"],
+    "software_version": ["software_version", "version", "app_version"],
+}
 
 
 def queue_background_ml(background_tasks: BackgroundTasks) -> None:
@@ -259,48 +271,115 @@ async def import_assets(
         raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
 
     reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or corrupted.")
 
-    if not reader.fieldnames or not REQUIRED_CSV_COLUMNS.issubset(set(reader.fieldnames)):
-        missing = REQUIRED_CSV_COLUMNS - set(reader.fieldnames or [])
+    # Match column aliases dynamically (case-insensitive and whitespace-stripped)
+    raw_headers = list(reader.fieldnames)
+    header_map = {}
+
+    for target_key, aliases in COLUMN_ALIASES.items():
+        for col in raw_headers:
+            clean_col = col.lower().strip().replace(" ", "_").replace("-", "")
+            if clean_col in [a.replace("_", "") for a in aliases]:
+                header_map[target_key] = col
+                break
+
+    if "asset_name" not in header_map:
         raise HTTPException(
             status_code=400,
-            detail=f"Missing required CSV columns: {', '.join(missing)}",
+            detail=(
+                "Could not detect an asset name or hostname column. "
+                "Supported headers: 'asset_name', 'hostname', 'name', 'device_name', 'host', 'system_name'."
+            ),
         )
 
     imported = 0
-    errors: list[str] = []
+    errors = []
 
-    for row_num, row in enumerate(reader, start=2):  # row 1 = header
-        row = {k: (v.strip() if v else v) for k, v in row.items()}
-        asset_name = row.get("asset_name", "").strip()
-        asset_type = row.get("asset_type", "").strip()
-        criticality = row.get("criticality", "").strip()
-        exposure = row.get("exposure", "").strip()
-
-        if not asset_name or not asset_type or not criticality or not exposure:
-            errors.append(f"Row {row_num}: missing required value")
+    for row_num, raw_row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else "") for k, v in raw_row.items() if k}
+        name_val = row.get(header_map["asset_name"], "").strip()
+        if not name_val:
+            errors.append(f"Row {row_num}: Missing asset name or hostname")
             continue
+
+        # Inferred or defaulted asset type
+        type_val = row.get(header_map.get("asset_type", ""), "").strip()
+        if not type_val:
+            nl = name_val.lower()
+            if any(k in nl for k in ["db", "database", "postgres", "sql", "mongo"]):
+                type_val = "Database"
+            elif any(k in nl for k in ["router", "gateway", "switch"]):
+                type_val = "Router"
+            elif any(k in nl for k in ["firewall", "fw", "waf", "asa"]):
+                type_val = "Firewall"
+            elif any(k in nl for k in ["pc", "workstation", "laptop", "desktop"]):
+                type_val = "Computer"
+            elif any(k in nl for k in ["iot", "sensor", "cam", "printer", "embedded"]):
+                type_val = "IoT"
+            elif any(k in nl for k in ["app", "api", "web", "portal", "service"]):
+                type_val = "Application"
+            else:
+                type_val = "Server"
+
+        # Criticality
+        crit_raw = row.get(header_map.get("criticality", ""), "").strip().lower()
+        if "crit" in crit_raw or crit_raw in ["4", "tier 1", "tier1"]:
+            crit_val = "Critical"
+        elif "high" in crit_raw or crit_raw in ["3", "tier 2", "tier2"]:
+            crit_val = "High"
+        elif "low" in crit_raw or crit_raw in ["1", "tier 4", "tier4"]:
+            crit_val = "Low"
+        else:
+            crit_val = "Medium"
+
+        # Exposure
+        exp_raw = row.get(header_map.get("exposure", ""), "").strip().lower()
+        if any(e in exp_raw for e in ["ext", "pub", "wan", "internet", "dmz"]):
+            exp_val = "External"
+        else:
+            exp_val = "Internal"
+
+        ip_val = row.get(header_map.get("ip_address", ""), "").strip() or None
+        os_val = row.get(header_map.get("operating_system", ""), "").strip() or None
+        dept_val = row.get(header_map.get("department", ""), "").strip() or "Operations"
+        env_val = row.get(header_map.get("environment", ""), "").strip() or "Production"
 
         existing = (
             db.query(Asset)
-            .filter(Asset.asset_name == asset_name, Asset.ip_address == (row.get("ip_address") or None))
+            .filter(Asset.asset_name == name_val, Asset.ip_address == ip_val)
             .first()
         )
         if existing:
-            logger.info("📦 [CSV IMPORT] Asset '%s' already exists in local DB; skipping duplicate insert.", asset_name)
+            logger.info("📦 [CSV IMPORT] Asset '%s' already exists in local DB; skipping duplicate insert.", name_val)
             continue
 
-        logger.info("📥 [CSV IMPORT] New asset '%s' detected; storing in local DB for future cache lookup.", asset_name)
+        logger.info("📥 [CSV IMPORT] New asset '%s' detected; storing in local DB for future cache lookup.", name_val)
         asset = Asset(
-            asset_name=asset_name,
-            asset_type=asset_type,
-            ip_address=row.get("ip_address") or None,
-            operating_system=row.get("operating_system") or None,
-            criticality=criticality,
-            exposure=exposure,
-            department=row.get("department") or None,
-            environment=row.get("environment") or "Simulated",
+            asset_name=name_val,
+            asset_type=type_val.title(),
+            ip_address=ip_val,
+            operating_system=os_val,
+            criticality=crit_val,
+            exposure=exp_val,
+            department=dept_val,
+            environment=env_val,
         )
+
+        sw_raw = row.get(header_map.get("software", ""), "").strip()
+        sw_ver = row.get(header_map.get("software_version", ""), "").strip() or "1.0"
+        if sw_raw:
+            items = [s.strip() for s in sw_raw.replace(";", ",").split(",") if s.strip()]
+            for item in items:
+                asset.software.append(
+                    AssetSoftware(
+                        software_name=item,
+                        version=sw_ver,
+                        software_type="Application",
+                    )
+                )
+
         db.add(asset)
         db.commit()
         db.refresh(asset)
@@ -312,7 +391,6 @@ async def import_assets(
 
     logger.info("✅ [CSV IMPORT COMPLETE] imported=%d failed=%d file=%s", imported, len(errors), file.filename)
     return ImportReport(imported=imported, failed=len(errors), errors=errors)
-
 
 @router.post("/{asset_id}/dependencies")
 def add_asset_dependency(

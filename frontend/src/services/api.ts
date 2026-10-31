@@ -288,3 +288,37 @@ export async function trainSupervised() {
   if (!r.ok) throw new Error("Supervised training trigger failed");
   return r.json();
 }
+
+
+// ── 3-Part Action Profile APIs ───────────────────────────────────────────────
+
+export async function getActionPlan(
+  cveId: string,
+  assetId?: number,
+  software?: string
+): Promise<import("../types/asset").ActionPlanProfile> {
+  const query = new URLSearchParams();
+  if (assetId) query.set("asset_id", assetId.toString());
+  if (software) query.set("software", software);
+
+  const res = await fetch(`${API_URL}/api/vulnerabilities/${cveId}/action-plan?${query.toString()}`);
+  return handleResponse<import("../types/asset").ActionPlanProfile>(res);
+}
+
+export async function resolveFinding(
+  assetVulnId: number
+): Promise<{ success: boolean; message: string; asset_id: number }> {
+  const res = await fetch(`${API_URL}/api/assessment/${assetVulnId}/resolve`, {
+    method: "POST",
+  });
+  return handleResponse<{ success: boolean; message: string; asset_id: number }>(res);
+}
+
+export async function quarantineAsset(
+  assetId: number
+): Promise<{ success: boolean; message: string; asset_id: number; environment: string }> {
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/quarantine`, {
+    method: "POST",
+  });
+  return handleResponse<{ success: boolean; message: string; asset_id: number; environment: string }>(res);
+}

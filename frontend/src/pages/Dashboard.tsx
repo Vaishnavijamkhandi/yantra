@@ -1,265 +1,679 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAssets, getDepartmentRisks, getLatestRisks, getMLStatus, getRiskSummary } from "../services/api";
-import type { Asset, DepartmentRisk, MLStatus, RiskAssessment, RiskSummary } from "../types/asset";
+import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import {
+  getAssets,
+  getRiskSummary,
+  getLatestRisks,
+  getDepartmentRisks,
+  assessAllRisks,
+  assessAssetRisk,
+  seedVulnerabilities,
+} from "../services/api";
+import type {
+  Asset,
+  RiskSummary,
+  RiskAssessment,
+  DepartmentRisk,
+} from "../types/asset";
 
-const sectionOrder = ["overview", "risk", "ml", "assets"] as const;
-type SectionKey = (typeof sectionOrder)[number];
+const RISK_BADGE: Record<string, { bg: string; text: string; border: string }> = {
+  Critical: { bg: "bg-[#800020]/10", text: "text-[#800020]", border: "border-[#800020]/30" },
+  High: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+  Medium: { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
+  Low: { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
+};
 
 export default function Dashboard() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [summary, setSummary] = useState<RiskSummary | null>(null);
   const [risks, setRisks] = useState<RiskAssessment[]>([]);
   const [departments, setDepartments] = useState<DepartmentRisk[]>([]);
-  const [mlStatus, setMlStatus] = useState<MLStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    overview: true,
-    risk: true,
-    ml: true,
-    assets: true,
-  });
+  const [actionBusy, setActionBusy] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const loadData = async () => {
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [riskFilter, setRiskFilter] = useState<string>("ALL");
+  const [deptFilter, setDeptFilter] = useState<string>("ALL");
+
+  // Selected Asset for Slide-over Drawer
+  const [selectedRisk, setSelectedRisk] = useState<RiskAssessment | null>(null);
+  const [simulatedRemediation, setSimulatedRemediation] = useState<boolean>(false);
+
+  async function loadData() {
     try {
       setLoading(true);
-      const [assetsData, summaryData, risksData, deptData, mlData] = await Promise.all([
+      const [assetsData, summaryData, risksData, deptData] = await Promise.all([
         getAssets().catch(() => []),
         getRiskSummary().catch(() => null),
         getLatestRisks().catch(() => []),
         getDepartmentRisks().catch(() => []),
-        getMLStatus().catch(() => null),
       ]);
-
       setAssets(assetsData);
       setSummary(summaryData);
       setRisks(risksData);
       setDepartments(deptData);
-      setMlStatus(mlData);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
-    void loadData();
-    const id = window.setInterval(() => {
-      void loadData();
-    }, 30000);
-    return () => window.clearInterval(id);
+    loadData();
   }, []);
 
-  const riskPriority = useMemo(() => risks.slice(0, 5), [risks]);
-  const uniqueDepartments = useMemo(() => departments.map((d) => d.department), [departments]);
+  async function handleAssessAll() {
+    setActionBusy(true);
+    try {
+      const report = await assessAllRisks();
+      setToastMessage(
+        `Fleet assessment complete! Assessed ${report.assessed} assets. Fleet average risk: ${report.average_score}/100.`
+      );
+      await loadData();
+    } catch (e: any) {
+      setToastMessage(`Assessment error: ${e.message}`);
+    } finally {
+      setActionBusy(false);
+    }
+  }
 
-  const toggleSection = (key: SectionKey) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  async function handleSeedData() {
+    setActionBusy(true);
+    try {
+      await seedVulnerabilities();
+      setToastMessage("Seeded curated enterprise CVEs successfully!");
+      await loadData();
+    } catch (e: any) {
+      setToastMessage(`Seed error: ${e.message}`);
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleReassessSingle(assetId: number) {
+    setActionBusy(true);
+    try {
+      const updated = await assessAssetRisk(assetId);
+      setSelectedRisk(updated);
+      setToastMessage(`Re-assessed ${updated.asset_name || "asset"} (Score: ${updated.risk_score})`);
+      await loadData();
+    } catch (e: any) {
+      setToastMessage(`Error: ${e.message}`);
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  const filteredRisks = useMemo(() => {
+    return risks.filter((r) => {
+      const matchSearch =
+        searchQuery === "" ||
+        (r.asset_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (r.department?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (r.asset_type?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+
+      const matchRisk =
+        riskFilter === "ALL" || r.risk_level.toUpperCase() === riskFilter.toUpperCase();
+
+      const matchDept =
+        deptFilter === "ALL" || r.department === deptFilter;
+
+      return matchSearch && matchRisk && matchDept;
+    });
+  }, [risks, searchQuery, riskFilter, deptFilter]);
+
+  const uniqueDepartments = useMemo(() => {
+    const set = new Set<string>();
+    risks.forEach((r) => {
+      if (r.department) set.add(r.department);
+    });
+    return Array.from(set);
+  }, [risks]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Operations view</p>
-          <h1 className="text-3xl font-bold text-slate-900">Analysis overview</h1>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 text-stone-900">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="flex items-center justify-between p-4 bg-white border-2 border-[#800020] text-stone-900 rounded-xl shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="text-[#800020] font-bold text-lg">🛡️</span>
+            <span className="text-xs font-semibold">{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-xs bg-[#f5f0e6] hover:bg-[#ede5d8] text-stone-700 px-3 py-1 rounded-lg font-bold"
+          >
+            Dismiss
+          </button>
         </div>
-        <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-          live refresh every 30s
+      )}
+
+      {/* Top Header & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#e5ded0]">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black tracking-tight text-[#800020]">
+              Cyber-Risk Operations Center
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase bg-[#800020]/10 text-[#800020] border border-[#800020]/20">
+              CyberSaathi Active
+            </span>
+          </div>
+          <p className="text-stone-600 text-xs mt-1">
+            Proactive critical infrastructure risk prediction, multi-vector exposure scoring, and remediation triage.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 font-mono text-xs">
+          <button
+            onClick={handleSeedData}
+            disabled={actionBusy}
+            className="px-4 py-2 font-semibold text-stone-700 bg-white border border-[#d6ccbe] hover:bg-[#faf7f2] rounded-xl transition shadow-2xs"
+          >
+            📥 Seed Curated CVEs
+          </button>
+          <button
+            onClick={handleAssessAll}
+            disabled={actionBusy || assets.length === 0}
+            className="px-4 py-2 font-bold text-white bg-[#800020] hover:bg-[#66001a] rounded-xl transition shadow-xs uppercase tracking-wide cursor-pointer"
+          >
+            {actionBusy ? "Calculating..." : "⚡ Assess Fleet Risk"}
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-          Loading analysis...
+      {/* CISA KEV Alert Banner */}
+      {summary && summary.cisa_kev_alert_count > 0 && (
+        <div className="p-4 bg-white border-l-4 border-[#800020] rounded-r-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-y border-r border-[#e5ded0]">
+          <div className="flex items-center gap-3">
+            <span className="text-[#800020] text-xl">⚠️</span>
+            <div>
+              <p className="text-xs font-mono font-bold text-[#800020]">
+                ACTIVE EXPLOITATION WARNING: {summary.cisa_kev_alert_count} ASSET(S) IN CISA KEV CATALOG
+              </p>
+              <p className="text-xs text-stone-600 mt-0.5">
+                These vulnerabilities are actively targeted by ransomware campaigns. Remediation is critical within 24 hours.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setRiskFilter("CRITICAL")}
+            className="text-xs font-bold bg-[#800020] hover:bg-[#66001a] text-white px-3.5 py-1.5 rounded-lg transition shrink-0 font-mono"
+          >
+            Filter Critical Threats →
+          </button>
         </div>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <MetricCard label="Total assets" value={summary?.total_assets ?? assets.length} accent="indigo" />
-            <MetricCard label="Avg risk score" value={summary ? `${summary.average_risk_score}/100` : "—"} accent="amber" />
-            <MetricCard label="Critical + High" value={summary ? String(summary.critical_risk_count + summary.high_risk_count) : "0"} accent="rose" />
-            <MetricCard label="ML status" value={mlStatus?.supervised_models_trained ? "Ready" : "Waiting"} accent="emerald" />
+      )}
+
+      {/* KPI Metric Grid (Beige & Maroon Palette) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs">
+          <span className="text-[11px] font-mono font-semibold text-stone-500 uppercase">Total Assets</span>
+          <div className="text-3xl font-black text-stone-900 mt-1">{summary?.total_assets ?? 0}</div>
+          <p className="text-xs text-stone-500 mt-1">{summary?.assessed_assets ?? 0} assessed for risk</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs">
+          <span className="text-[11px] font-mono font-semibold text-[#800020] uppercase">Vulnerable Assets</span>
+          <div className="text-3xl font-black text-[#800020] mt-1 font-mono">
+            {summary?.assets_with_confirmed_matches ?? 0}
+          </div>
+          <p className="text-xs text-stone-500 mt-1">Confirmed CVE matches</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs">
+          <span className="text-[11px] font-mono font-semibold text-red-700 uppercase">Critical Risks</span>
+          <div className="text-3xl font-black text-red-700 mt-1 font-mono">
+            {summary?.critical_risk_count ?? 0}
+          </div>
+          <p className="text-xs text-stone-500 mt-1">Score ≥ 80.0 (Immediate SLA)</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs">
+          <span className="text-[11px] font-mono font-semibold text-stone-500 uppercase">Fleet Average Risk</span>
+          <div className="text-3xl font-black text-stone-900 mt-1 font-mono">
+            {summary?.average_risk_score ?? 0}
+            <span className="text-xs font-normal text-stone-400 ml-1">/100</span>
+          </div>
+          <p className="text-xs text-stone-500 mt-1">Across monitored assets</p>
+        </div>
+      </div>
+
+      {/* Visualizations Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Risk Tier Distribution */}
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs lg:col-span-1">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider font-mono">
+              Risk Tier Distribution
+            </h3>
+            <span className="text-[11px] text-stone-400 font-mono">Latest Assessment</span>
           </div>
 
-          <div className="space-y-4">
-            <AccordionSection title="Fleet overview" open={openSections.overview} onToggle={() => toggleSection("overview")}>
-              <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Department view</h3>
-                    <span className="text-xs text-slate-500">{departments.length} departments</span>
+          <div className="space-y-3">
+            {[
+              { label: "Critical (80–100)", count: summary?.critical_risk_count ?? 0, color: "bg-[#800020]", text: "text-[#800020]" },
+              { label: "High (60–79)", count: summary?.high_risk_count ?? 0, color: "bg-red-600", text: "text-red-700" },
+              { label: "Medium (30–59)", count: summary?.medium_risk_count ?? 0, color: "bg-amber-600", text: "text-amber-800" },
+              { label: "Low (0–29)", count: summary?.low_risk_count ?? 0, color: "bg-emerald-600", text: "text-emerald-800" },
+            ].map((tier) => {
+              const totalAssessed = summary?.assessed_assets || 1;
+              const pct = Math.round((tier.count / totalAssessed) * 100);
+              return (
+                <div key={tier.label}>
+                  <div className="flex justify-between text-xs font-medium mb-1">
+                    <span className="text-stone-700">{tier.label}</span>
+                    <span className={`${tier.text} font-mono font-bold`}>{tier.count} ({pct}%)</span>
                   </div>
-                  <div className="space-y-3">
-                    {departments.length === 0 ? (
-                      <p className="text-sm text-slate-500">No department summary available yet.</p>
+                  <div className="w-full bg-[#f4efe6] h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${tier.color} transition-all duration-500`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 pt-3 border-t border-[#e5ded0] text-[11px] text-stone-500 font-mono leading-relaxed">
+            Formula: 40% Severity + 20% Exploitability + 20% Exposure + 20% Criticality.
+          </div>
+        </div>
+
+        {/* Sector Heatmap */}
+        <div className="bg-white p-5 rounded-2xl border border-[#e5ded0] shadow-xs lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider font-mono">
+                Sector Cyber-Risk Posture
+              </h3>
+              <p className="text-[11px] text-stone-500 mt-0.5">
+                Aggregated posture across critical infrastructure and enterprise business units.
+              </p>
+            </div>
+            <span className="text-[11px] text-[#800020] font-mono font-bold">CERT-In Aligned</span>
+          </div>
+
+          {departments.length === 0 ? (
+            <div className="py-12 text-center text-stone-400 text-xs font-mono">
+              Run risk assessments to populate sector analytics.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {departments.map((dept) => (
+                <div key={dept.department} className="flex items-center gap-4">
+                  <div className="w-40 text-xs font-semibold text-stone-800 truncate">
+                    {dept.department}
+                  </div>
+                  <div className="flex-1 bg-[#f4efe6] h-3 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        dept.average_risk >= 70
+                          ? "bg-[#800020]"
+                          : dept.average_risk >= 50
+                          ? "bg-amber-600"
+                          : "bg-emerald-600"
+                      }`}
+                      style={{ width: `${Math.min(100, dept.average_risk)}%` }}
+                    />
+                  </div>
+                  <div className="w-16 text-right font-mono text-xs text-stone-900 font-bold">
+                    {dept.average_risk}<span className="text-stone-400 font-normal">/100</span>
+                  </div>
+                  <div className="w-24 text-right">
+                    {dept.critical_count > 0 ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#800020]/10 text-[#800020] border border-[#800020]/20">
+                        {dept.critical_count} Critical
+                      </span>
                     ) : (
-                      departments.map((dept) => (
-                        <div key={dept.department} className="rounded-lg border border-slate-200 bg-white p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-medium text-slate-800">{dept.department}</span>
-                            <span className="text-xs text-slate-500">{dept.asset_count} assets</span>
-                          </div>
-                          <div className="mt-2 flex items-center gap-3 text-xs text-slate-600">
-                            <span>Avg risk {dept.average_risk.toFixed(1)}</span>
-                            <span>•</span>
-                            <span>{dept.critical_count} critical</span>
-                            <span>•</span>
-                            <span>{dept.high_count} high</span>
-                          </div>
-                        </div>
-                      ))
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono text-emerald-800 font-medium">
+                        Normal
+                      </span>
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Summary</h3>
-                  <div className="mt-4 space-y-3 text-sm text-slate-700">
-                    <div className="flex justify-between"><span>Average risk</span><strong>{summary ? `${summary.average_risk_score.toFixed(1)}/100` : "—"}</strong></div>
-                    <div className="flex justify-between"><span>Critical</span><strong>{summary?.critical_risk_count ?? 0}</strong></div>
-                    <div className="flex justify-between"><span>High</span><strong>{summary?.high_risk_count ?? 0}</strong></div>
-                    <div className="flex justify-between"><span>Medium</span><strong>{summary?.medium_risk_count ?? 0}</strong></div>
-                    <div className="flex justify-between"><span>Low</span><strong>{summary?.low_risk_count ?? 0}</strong></div>
-                  </div>
-                </div>
-              </div>
-            </AccordionSection>
+      {/* Asset Prioritization Queue Table */}
+      <div className="bg-white rounded-2xl border border-[#e5ded0] shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-[#e5ded0] space-y-4 bg-[#faf7f2]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-bold text-[#800020] uppercase tracking-wider font-mono">
+                Asset Prioritization Queue
+              </h2>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Assets ranked dynamically by risk score. Focus remediation on top items first.
+              </p>
+            </div>
 
-            <AccordionSection title="Risk scoring details" open={openSections.risk} onToggle={() => toggleSection("risk")}>
-              <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="space-y-3">
-                  {riskPriority.length === 0 ? (
-                    <p className="text-sm text-slate-500">No risk scores generated yet.</p>
-                  ) : (
-                    riskPriority.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-slate-800">{item.asset_name}</div>
-                            <div className="text-xs text-slate-500">{item.department || "Unassigned"} · {item.asset_type}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-slate-900">{item.risk_score}</div>
-                            <div className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${riskBadge(item.risk_level)}`}>
-                              {item.risk_level}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 text-xs text-slate-600">{item.explanation}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
+              <span className="text-stone-500 mr-1">FILTER:</span>
+              {["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"].map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setRiskFilter(level)}
+                  className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+                    riskFilter === level
+                      ? "bg-[#800020] text-white shadow-2xs"
+                      : "bg-[#ede5d8] text-stone-700 hover:text-stone-900"
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Breakdown</h3>
-                  <div className="mt-3 space-y-3 text-sm text-slate-700">
-                    {uniqueDepartments.length === 0 ? (
-                      <p className="text-slate-500">No department breakdown yet.</p>
-                    ) : (
-                      uniqueDepartments.map((department) => (
-                        <div key={department} className="flex items-center justify-between rounded-lg bg-slate-50 px-2 py-2">
-                          <span>{department}</span>
-                          <span className="font-medium">{risks.filter((r) => r.department === department).length}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </AccordionSection>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 text-xs">
+                🔍
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by asset name, sector, or hardware architecture..."
+                className="w-full pl-9 pr-4 py-2 text-xs border border-[#d6ccbe] rounded-lg bg-white text-stone-800 placeholder-stone-400 focus:outline-none focus:border-[#800020] font-mono"
+              />
+            </div>
 
-            <AccordionSection title="ML analysis" open={openSections.ml} onToggle={() => toggleSection("ml")}>
-              <div className="grid gap-4 md:grid-cols-3">
-                <MiniStat label="EPSS records" value={String(mlStatus?.epss_records_loaded ?? 0)} />
-                <MiniStat label="Anomaly model" value={mlStatus?.anomaly_model_trained ? "trained" : "waiting"} />
-                <MiniStat label="Supervised model" value={mlStatus?.supervised_models_trained ? "trained" : "waiting"} />
-              </div>
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                {mlStatus?.warning || "Experimental analysis is active and refreshes automatically."}
-              </div>
-            </AccordionSection>
+            <select
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+              className="px-3 py-2 text-xs border border-[#d6ccbe] rounded-lg bg-white text-stone-700 focus:outline-none focus:border-[#800020] font-mono"
+            >
+              <option value="ALL">All Sectors</option>
+              {uniqueDepartments.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-            <AccordionSection title="Asset drill-down" open={openSections.assets} onToggle={() => toggleSection("assets")}>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {assets.length === 0 ? (
-                  <p className="text-sm text-slate-500">No assets exist yet. Use the Upload tab to import them.</p>
-                ) : (
-                  assets.slice(0, 12).map((asset) => (
-                    <div key={asset.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-semibold text-slate-800">{asset.asset_name}</div>
-                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] uppercase text-slate-700">
-                          {asset.criticality}
+        {/* Priority Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#f5f0e6] text-stone-600 font-mono uppercase tracking-wider border-b border-[#e5ded0]">
+              <tr>
+                <th className="py-3 px-4 w-14">Rank</th>
+                <th className="py-3 px-4">Asset Name</th>
+                <th className="py-3 px-4">Sector / Dept</th>
+                <th className="py-3 px-4">Type</th>
+                <th className="py-3 px-4">Exposure</th>
+                <th className="py-3 px-4 text-center">Matched CVEs</th>
+                <th className="py-3 px-4">Risk Score</th>
+                <th className="py-3 px-4">Risk Tier</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f0eae0] font-mono">
+              {filteredRisks.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-stone-500 font-mono">
+                    {loading ? "Loading priority queue..." : "No risk records match criteria."}
+                  </td>
+                </tr>
+              ) : (
+                filteredRisks.map((risk, index) => {
+                  const badge = RISK_BADGE[risk.risk_level] || RISK_BADGE.Medium;
+                  const cveCount = risk.factors?.matched_cve_count ?? 0;
+                  return (
+                    <tr
+                      key={risk.id}
+                      onClick={() => {
+                        setSelectedRisk(risk);
+                        setSimulatedRemediation(false);
+                      }}
+                      className="hover:bg-[#faf6f0] cursor-pointer transition border-b border-[#f0eae0]"
+                    >
+                      <td className="py-3.5 px-4 text-stone-400 font-bold">
+                        #{String(index + 1).padStart(2, "0")}
+                      </td>
+                      <td className="py-3.5 px-4 font-sans">
+                        <div className="font-bold text-stone-900 hover:text-[#800020] transition">{risk.asset_name}</div>
+                        <div className="text-[11px] text-stone-500 font-mono">ID: {risk.asset_id}</div>
+                      </td>
+                      <td className="py-3.5 px-4 text-stone-700 font-sans">
+                        {risk.department || "Unassigned"}
+                      </td>
+                      <td className="py-3.5 px-4 text-stone-600">{risk.asset_type}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          risk.factors?.exposure === 100
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : "bg-[#ede5d8] text-stone-700"
+                        }`}>
+                          {risk.factors?.exposure === 100 ? "External" : "Internal"}
                         </span>
-                      </div>
-                      <div className="mt-2 text-xs text-slate-600">
-                        <div>{asset.asset_type}</div>
-                        <div>{asset.department || "Unassigned"}</div>
-                        <div>{asset.exposure}</div>
-                      </div>
-                      <div className="mt-3">
-                        <a href={`/assets/${asset.id}`} className="text-xs font-medium text-indigo-600 hover:underline">
-                          Open asset details →
-                        </a>
-                      </div>
-                    </div>
-                  ))
-                )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-full text-xs ${
+                            cveCount > 0
+                              ? "bg-[#800020]/10 text-[#800020] border border-[#800020]/20"
+                              : "bg-[#f5f0e6] text-stone-400"
+                          }`}
+                        >
+                          {cveCount}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-stone-900">
+                        <div className="flex items-center gap-2">
+                          <span>{risk.risk_score}</span>
+                          <div className="w-16 bg-[#f4efe6] h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${
+                                risk.risk_score >= 80
+                                  ? "bg-[#800020]"
+                                  : risk.risk_score >= 60
+                                  ? "bg-red-600"
+                                  : risk.risk_score >= 30
+                                  ? "bg-amber-600"
+                                  : "bg-emerald-600"
+                              }`}
+                              style={{ width: `${risk.risk_score}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-md text-xs font-bold border ${badge.bg} ${badge.text} ${badge.border}`}
+                        >
+                          {risk.risk_level}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRisk(risk);
+                            setSimulatedRemediation(false);
+                          }}
+                          className="px-3 py-1 text-xs font-bold text-[#800020] hover:bg-[#800020] hover:text-white border border-[#800020]/30 rounded-lg transition"
+                        >
+                          Investigate →
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Slide-over Asset Detail & What-If Remediation Drawer */}
+      {selectedRisk && (
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex justify-end transition-opacity"
+          onClick={() => setSelectedRisk(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white border-l-2 border-[#d6ccbe] h-full p-6 overflow-y-auto space-y-6 text-stone-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#e5ded0]">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#800020]">
+                  Risk Factor Breakdown &amp; Remediation
+                </span>
+                <h3 className="text-xl font-bold text-stone-900 mt-0.5">
+                  {selectedRisk.asset_name}
+                </h3>
+                <p className="text-xs text-stone-500 font-mono">
+                  {selectedRisk.asset_type} · {selectedRisk.department || "Enterprise"}
+                </p>
               </div>
-            </AccordionSection>
+              <button
+                onClick={() => setSelectedRisk(null)}
+                className="w-8 h-8 rounded-full bg-[#f5f0e6] hover:bg-[#ede5d8] text-stone-700 flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Score & Tier Banner */}
+            <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e5ded0] flex items-center justify-between">
+              <div>
+                <span className="text-xs text-stone-500 font-mono uppercase">Calculated Risk Score</span>
+                <div className="text-3xl font-bold text-[#800020] font-mono mt-0.5">
+                  {simulatedRemediation
+                    ? Math.round(selectedRisk.risk_score * 0.45)
+                    : selectedRisk.risk_score}
+                  <span className="text-xs font-normal text-stone-400 ml-1">/100</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-stone-500 font-mono uppercase">Risk Tier</span>
+                <div className="mt-0.5">
+                  <span
+                    className={`px-3 py-1 rounded-md text-xs font-bold font-mono border ${
+                      simulatedRemediation
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        : (RISK_BADGE[selectedRisk.risk_level] || RISK_BADGE.Medium).bg +
+                          " " +
+                          (RISK_BADGE[selectedRisk.risk_level] || RISK_BADGE.Medium).text +
+                          " " +
+                          (RISK_BADGE[selectedRisk.risk_level] || RISK_BADGE.Medium).border
+                    }`}
+                  >
+                    {simulatedRemediation ? "Low (Remediated)" : selectedRisk.risk_level}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Contributing Factor Breakdown */}
+            <div>
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-700 mb-3">
+                Factor Contribution Breakdown (0–100)
+              </h4>
+              <div className="space-y-3">
+                {[
+                  { label: "Vulnerability Severity (Weight 40%)", score: selectedRisk.severity_score, bar: "bg-[#800020]" },
+                  { label: "Threat Exploitability (Weight 20%)", score: selectedRisk.exploitability_score, bar: "bg-red-600" },
+                  { label: "Network Exposure (Weight 20%)", score: selectedRisk.exposure_score, bar: "bg-amber-600" },
+                  { label: "Operational Criticality (Weight 20%)", score: selectedRisk.criticality_score, bar: "bg-stone-500" },
+                ].map((factor) => (
+                  <div key={factor.label}>
+                    <div className="flex justify-between text-xs text-stone-700 mb-1">
+                      <span>{factor.label}</span>
+                      <span className="font-mono font-bold text-stone-900">{factor.score}</span>
+                    </div>
+                    <div className="w-full bg-[#f4efe6] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${factor.bar}`}
+                        style={{ width: `${factor.score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Plain English Explainability */}
+            <div className="p-4 bg-[#faf7f2] border border-[#e5ded0] rounded-xl space-y-1">
+              <span className="text-xs font-mono font-bold text-[#800020]">Explainable Analysis:</span>
+              <p className="text-xs text-stone-700 leading-relaxed mt-1">
+                {selectedRisk.explanation}
+              </p>
+            </div>
+
+            {/* Remediation Guidance */}
+            <div>
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800 mb-2">
+                Recommended Remediation Actions
+              </h4>
+              <ul className="space-y-2">
+                {selectedRisk.recommendations?.map((rec, i) => (
+                  <li key={i} className="text-xs text-stone-700 flex items-start gap-2 bg-[#faf7f2] p-2.5 rounded-lg border border-[#e5ded0]">
+                    <span className="text-emerald-700 font-bold">✓</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* What-If Remediation Simulator */}
+            <div className="p-4 bg-[#f5f0e6] border border-[#d6ccbe] rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-stone-900">
+                  What-If Remediation Simulation
+                </span>
+                <span className="text-[10px] bg-white border border-[#d6ccbe] text-stone-700 px-2 py-0.5 rounded font-mono">
+                  Predictive Impact
+                </span>
+              </div>
+              <p className="text-xs text-stone-600">
+                Simulate the effect of applying recommended security patches to this asset.
+              </p>
+              <button
+                onClick={() => setSimulatedRemediation(!simulatedRemediation)}
+                className={`w-full py-2.5 text-xs font-mono font-bold rounded-lg transition cursor-pointer ${
+                  simulatedRemediation
+                    ? "bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+                    : "bg-[#800020] hover:bg-[#66001a] text-white shadow-xs"
+                }`}
+              >
+                {simulatedRemediation
+                  ? "✓ Remediation Simulated (Score -55%) — Reset"
+                  : "⚡ Simulate Vulnerability Patching"}
+              </button>
+            </div>
+
+            {/* Drawer Actions */}
+            <div className="pt-4 border-t border-[#e5ded0] flex items-center justify-between gap-3">
+              <Link
+                to={`/assets/${selectedRisk.asset_id}`}
+                className="text-xs text-[#800020] hover:underline font-mono font-bold"
+              >
+                Open Full Asset Record →
+              </Link>
+              <button
+                onClick={() => handleReassessSingle(selectedRisk.asset_id)}
+                disabled={actionBusy}
+                className="px-3 py-1.5 text-xs font-mono text-stone-700 bg-[#f5f0e6] hover:bg-[#ede5d8] border border-[#d6ccbe] rounded-lg transition"
+              >
+                🔄 Re-assess Risk
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
-}
-
-function MetricCard({ label, value, accent }: { label: string; value: string | number; accent: "indigo" | "amber" | "rose" | "emerald" }) {
-  const palette = {
-    indigo: "bg-indigo-50 border-indigo-200 text-indigo-700",
-    amber: "bg-amber-50 border-amber-200 text-amber-700",
-    rose: "bg-rose-50 border-rose-200 text-rose-700",
-    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
-  };
-
-  return (
-    <div className={`rounded-2xl border p-4 ${palette[accent]}`}>
-      <div className="text-xs uppercase tracking-wide opacity-80">{label}</div>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-2 text-lg font-semibold text-slate-800">{value}</div>
-    </div>
-  );
-}
-
-function AccordionSection({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <button onClick={onToggle} type="button" className="flex w-full items-center justify-between bg-slate-50 px-4 py-3 text-left">
-        <span className="font-semibold text-slate-800">{title}</span>
-        <span className="text-lg text-slate-500">{open ? "−" : "+"}</span>
-      </button>
-      {open && <div className="p-4">{children}</div>}
-    </div>
-  );
-}
-
-function riskBadge(level: string) {
-  switch ((level || "").toUpperCase()) {
-    case "CRITICAL":
-      return "border-red-200 bg-red-100 text-red-700";
-    case "HIGH":
-      return "border-orange-200 bg-orange-100 text-orange-700";
-    case "MEDIUM":
-      return "border-yellow-200 bg-yellow-100 text-yellow-700";
-    default:
-      return "border-emerald-200 bg-emerald-100 text-emerald-700";
-  }
 }

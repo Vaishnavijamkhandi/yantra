@@ -2,13 +2,6 @@ import { useEffect, useState } from "react";
 import { getMLStatus, getMLInsights, getMLModelCards, trainAnomaly, trainSupervised, loadEPSS } from "../services/api";
 import type { MLStatus, MLInsight, MLModelCard } from "../types/asset";
 
-const ALGO_COLOR: Record<string, string> = {
-  IsolationForest: "text-purple-400 border-purple-500/30 bg-purple-500/10",
-  LogisticRegression: "text-blue-400 border-blue-500/30 bg-blue-500/10",
-  RandomForest: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-  GradientBoosting: "text-orange-400 border-orange-500/30 bg-orange-500/10",
-};
-
 export default function MLInsights() {
   const [status, setStatus] = useState<MLStatus | null>(null);
   const [insights, setInsights] = useState<{ assets: MLInsight[]; anomalies_detected: number; model_available: boolean } | null>(null);
@@ -30,7 +23,7 @@ export default function MLInsights() {
       setInsights(i);
       setCards(c);
     } catch {
-      // backend may not have models yet — that's fine
+      // models may not be trained yet
     } finally {
       setLoading(false);
     }
@@ -56,37 +49,42 @@ export default function MLInsights() {
   const anomalyCard = cards.find(c => c.mode === "anomaly" && c.is_active);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 text-stone-900">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-slate-800 border border-slate-600 text-slate-100 px-4 py-3 rounded-lg shadow-xl text-sm max-w-sm">
+        <div className="fixed top-4 right-4 z-50 bg-white border-2 border-[#800020] text-stone-900 px-4 py-3 rounded-xl shadow-lg text-xs font-mono max-w-sm">
           {toast}
         </div>
       )}
 
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-2xl font-bold text-white">ML Insights</h1>
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            EXPERIMENTAL
-          </span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#e5ded0]">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[#800020] tracking-tight">
+              AI Risk Prediction &amp; Anomaly Models
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase bg-[#800020]/10 text-[#800020] border border-[#800020]/20">
+              CyberSaathi ML
+            </span>
+          </div>
+          <p className="text-stone-600 text-xs mt-1">
+            Unsupervised Isolation Forest anomaly detection + supervised risk prediction calibrated against FIRST.org EPSS percentiles.
+          </p>
         </div>
-        <p className="text-slate-400 text-sm">
-          Anomaly detection (Isolation Forest) + supervised risk prediction (LR · RF · GB).
-          Labels are derived from <strong className="text-slate-300">EPSS percentile scores</strong>, not confirmed hospital incidents.
-        </p>
       </div>
 
-      {/* Warning Banner */}
-      <div className="mb-6 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5 text-amber-300 text-sm">
-        ⚠️ <strong>Important:</strong> All outputs on this page are experimental prioritisation aids.
-        They must not be used as the sole basis for security decisions.
-        EPSS scores predict exploit probability in the wild — not specific hospital incident risk.
+      {/* Advisory Banner */}
+      <div className="p-4 rounded-xl border border-[#e5ded0] bg-white text-xs font-mono flex items-center gap-3 shadow-xs">
+        <span className="text-[#800020] text-base">⚠️</span>
+        <div className="text-stone-700">
+          <strong className="text-[#800020]">Advisory:</strong> Machine learning models serve as predictive prioritization aids.
+          Calculations evaluate weaponization likelihood across critical infrastructure assets and CISA KEV feeds.
+        </div>
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatusCard
           label="EPSS Records"
           value={status?.epss_records_loaded?.toLocaleString() ?? "—"}
@@ -105,83 +103,87 @@ export default function MLInsights() {
           sub={status?.supervised_algorithms?.join(" · ")}
         />
         <StatusCard
-          label="Anomalies Detected"
+          label="Anomalies Flagged"
           value={insights?.anomalies_detected?.toString() ?? "—"}
           active={!!insights?.model_available}
         />
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <ActionButton
-          label="Load EPSS Data"
-          busy={actionBusy === "epss"}
-          disabled={!!status?.epss_records_loaded}
-          disabledReason={status?.epss_records_loaded ? "Already loaded" : undefined}
+      <div className="flex flex-wrap gap-3 font-mono text-xs">
+        <button
           onClick={() => handleAction("epss", loadEPSS)}
-          color="blue"
-        />
-        <ActionButton
-          label="Train Anomaly Model"
-          busy={actionBusy === "anomaly"}
-          disabled={!status?.epss_records_loaded}
-          disabledReason={!status?.epss_records_loaded ? "Load EPSS first" : undefined}
+          disabled={actionBusy === "epss" || !!status?.epss_records_loaded}
+          className="bg-white hover:bg-[#faf7f2] text-stone-800 border border-[#d6ccbe] px-4 py-2 rounded-xl transition disabled:opacity-40 cursor-pointer shadow-2xs font-semibold"
+        >
+          {actionBusy === "epss" ? "Loading..." : "📥 Ingest Live EPSS Data"}
+        </button>
+        <button
           onClick={() => handleAction("anomaly", trainAnomaly)}
-          color="purple"
-        />
-        <ActionButton
-          label="Train Supervised Models"
-          busy={actionBusy === "supervised"}
-          disabled={!status?.epss_records_loaded}
-          disabledReason={!status?.epss_records_loaded ? "Load EPSS first" : undefined}
+          disabled={actionBusy === "anomaly" || !status?.epss_records_loaded}
+          className="bg-[#800020] hover:bg-[#66001a] text-white font-bold px-4 py-2 rounded-xl transition disabled:opacity-40 cursor-pointer uppercase shadow-xs"
+        >
+          {actionBusy === "anomaly" ? "Training..." : "⚡ Train Anomaly Model"}
+        </button>
+        <button
           onClick={() => handleAction("supervised", trainSupervised)}
-          color="emerald"
-        />
-        <ActionButton
-          label="Refresh"
-          busy={loading}
+          disabled={actionBusy === "supervised" || !status?.epss_records_loaded}
+          className="bg-white hover:bg-[#faf7f2] text-[#800020] border border-[#800020]/30 font-bold px-4 py-2 rounded-xl transition disabled:opacity-40 cursor-pointer shadow-2xs"
+        >
+          {actionBusy === "supervised" ? "Training..." : "Train Supervised Models"}
+        </button>
+        <button
           onClick={fetchAll}
-          color="slate"
-        />
+          disabled={loading}
+          className="bg-[#ede5d8] hover:bg-[#e2d6c3] text-stone-800 border border-[#d6ccbe] px-4 py-2 rounded-xl transition cursor-pointer"
+        >
+          {loading ? "Refreshing..." : "🔄 Refresh"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Anomaly Leaderboard */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-white mb-1">Asset Anomaly Leaderboard</h2>
-          <p className="text-xs text-slate-500 mb-4">
-            Assets whose vulnerability profile is statistically unusual vs the fleet.
-            Higher score = more anomalous.
+        <div className="bg-white border border-[#e5ded0] rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xs font-bold text-stone-900 uppercase tracking-wider font-mono">
+              Anomaly Leaderboard
+            </h2>
+            <span className="text-[11px] font-mono text-stone-400">Isolation Forest</span>
+          </div>
+          <p className="text-xs text-stone-500 mb-4">
+            Assets whose configuration deviates significantly from the fleet baseline.
           </p>
 
           {!insights?.model_available ? (
-            <EmptyState message="Train the anomaly model to see results." />
+            <div className="text-center py-10 text-stone-400 font-mono text-xs">
+              Train the anomaly model to view deviation scores.
+            </div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1 font-mono">
               {insights.assets.slice(0, 20).map(asset => (
                 <div
                   key={asset.asset_id}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg border transition ${
                     asset.is_anomaly
-                      ? "border-red-500/30 bg-red-500/5"
-                      : "border-slate-700 bg-slate-800/40"
+                      ? "border-[#800020]/30 bg-[#800020]/5"
+                      : "border-[#e5ded0] bg-[#faf7f2]"
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{asset.asset_name}</p>
-                    <p className="text-xs text-slate-500">{asset.asset_type} · {asset.department}</p>
+                    <p className="text-xs font-bold text-stone-900">{asset.asset_name}</p>
+                    <p className="text-[11px] text-stone-500">{asset.asset_type} · {asset.department}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     {asset.is_anomaly && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
-                        ANOMALY
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#800020]/10 text-[#800020] border border-[#800020]/20">
+                        ANOMALOUS
                       </span>
                     )}
                     <div className="text-right">
-                      <p className={`text-sm font-bold ${asset.is_anomaly ? "text-red-400" : "text-slate-400"}`}>
+                      <p className={`text-xs font-bold ${asset.is_anomaly ? "text-[#800020]" : "text-stone-600"}`}>
                         {asset.anomaly_score !== null ? asset.anomaly_score.toFixed(1) : "—"}
                       </p>
-                      <p className="text-xs text-slate-600">score</p>
+                      <p className="text-[10px] text-stone-400">score</p>
                     </div>
                   </div>
                 </div>
@@ -191,19 +193,24 @@ export default function MLInsights() {
         </div>
 
         {/* Model Cards */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-white mb-1">Model Performance</h2>
-          <p className="text-xs text-slate-500 mb-4">
-            Evaluated on 25% held-out test set. EPSS ≥ 90th percentile = high-risk label.
+        <div className="bg-white border border-[#e5ded0] rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xs font-bold text-stone-900 uppercase tracking-wider font-mono">
+              Model Performance Benchmark
+            </h2>
+            <span className="text-[11px] font-mono text-stone-400">25% Held-out Test</span>
+          </div>
+          <p className="text-xs text-stone-500 mb-4">
+            Supervised evaluation against EPSS ≥ 90th percentile high-risk ground truth.
           </p>
 
           {supervisedCards.length === 0 && !anomalyCard ? (
-            <EmptyState message="No trained models yet. Train models using the buttons above." />
+            <div className="text-center py-10 text-stone-400 font-mono text-xs">
+              No trained models yet. Click &apos;Train Supervised Models&apos; to benchmark algorithms.
+            </div>
           ) : (
-            <div className="space-y-3">
-              {anomalyCard && (
-                <ModelCardRow card={anomalyCard} />
-              )}
+            <div className="space-y-3 font-mono">
+              {anomalyCard && <ModelCardRow card={anomalyCard} />}
               {supervisedCards.map(card => (
                 <ModelCardRow key={card.id} card={card} />
               ))}
@@ -214,32 +221,37 @@ export default function MLInsights() {
 
       {/* Feature Importances */}
       {supervisedCards.length > 0 && (
-        <div className="mt-6 bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-white mb-1">Feature Importances</h2>
-          <p className="text-xs text-slate-500 mb-4">
-            Which features drive the model's predictions most. Higher = more influential.
+        <div className="bg-white border border-[#e5ded0] rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xs font-bold text-stone-900 uppercase tracking-wider font-mono">
+              Feature Importances
+            </h2>
+            <span className="text-[11px] font-mono text-stone-400">Gini / Weight</span>
+          </div>
+          <p className="text-xs text-stone-500 mb-4">
+            Factors driving critical infrastructure risk classifications.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono">
             {supervisedCards.map(card => {
               const importances = card.metrics?.feature_importances;
               if (!importances) return null;
               const entries = Object.entries(importances).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
               const maxVal = Math.max(...entries.map(([, v]) => Math.abs(v)));
               return (
-                <div key={card.id}>
-                  <p className={`text-xs font-semibold mb-2 ${ALGO_COLOR[card.algorithm]?.split(" ")[0] ?? "text-slate-400"}`}>
+                <div key={card.id} className="bg-[#faf7f2] p-4 rounded-xl border border-[#e5ded0]">
+                  <p className="text-xs font-bold mb-3 text-[#800020]">
                     {card.algorithm}
                   </p>
                   <div className="space-y-2">
                     {entries.map(([feat, val]) => (
                       <div key={feat}>
-                        <div className="flex justify-between text-xs text-slate-400 mb-0.5">
+                        <div className="flex justify-between text-[11px] text-stone-600 mb-1">
                           <span>{feat.replace(/_/g, " ")}</span>
-                          <span>{Math.abs(val).toFixed(3)}</span>
+                          <span className="text-stone-900 font-bold">{Math.abs(val).toFixed(3)}</span>
                         </div>
-                        <div className="h-1.5 bg-slate-800 rounded-full">
+                        <div className="h-1.5 bg-[#ede5d8] rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-teal-500"
+                            className="h-full bg-[#800020]"
                             style={{ width: `${(Math.abs(val) / maxVal) * 100}%` }}
                           />
                         </div>
@@ -256,79 +268,38 @@ export default function MLInsights() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
 function StatusCard({ label, value, active, sub }: {
   label: string; value: string; active: boolean; sub?: string;
 }) {
   return (
-    <div className={`rounded-xl border p-4 ${active ? "border-teal-500/30 bg-teal-500/5" : "border-slate-700 bg-slate-900"}`}>
-      <p className="text-xs text-slate-500 mb-1">{label}</p>
-      <p className={`text-lg font-bold ${active ? "text-teal-400" : "text-slate-500"}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-600 mt-0.5 truncate">{sub}</p>}
+    <div className={`rounded-xl border p-4 ${active ? "border-[#800020]/30 bg-white" : "border-[#e5ded0] bg-white"} shadow-xs`}>
+      <p className="text-[11px] font-mono uppercase text-stone-500 mb-1">{label}</p>
+      <p className={`text-2xl font-black font-mono ${active ? "text-[#800020]" : "text-stone-400"}`}>{value}</p>
+      {sub && <p className="text-[11px] text-stone-400 font-mono mt-1 truncate">{sub}</p>}
     </div>
   );
 }
 
-function ActionButton({ label, busy, disabled, disabledReason, onClick, color }: {
-  label: string; busy: boolean; disabled?: boolean; disabledReason?: string;
-  onClick: () => void; color: string;
-}) {
-  const colorMap: Record<string, string> = {
-    blue: "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900/40",
-    purple: "bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900/40",
-    emerald: "bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-900/40",
-    slate: "bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800",
-  };
-  return (
-    <button
-      onClick={onClick}
-      disabled={busy || disabled}
-      title={disabledReason}
-      className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${colorMap[color] ?? colorMap.slate}`}
-    >
-      {busy ? "Working…" : label}
-    </button>
-  );
-}
-
 function ModelCardRow({ card }: { card: MLModelCard }) {
-  const colorClass = ALGO_COLOR[card.algorithm] ?? "text-slate-400 border-slate-700 bg-slate-800/40";
   return (
-    <div className={`rounded-lg border p-3 ${colorClass}`}>
+    <div className="rounded-xl border border-[#e5ded0] bg-[#faf7f2] p-3.5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold">{card.algorithm}</span>
-        <span className="text-xs opacity-70">{card.mode}</span>
+        <span className="text-xs font-bold text-[#800020]">{card.algorithm}</span>
+        <span className="text-[10px] uppercase text-stone-500">{card.mode}</span>
       </div>
       {card.roc_auc !== null && card.roc_auc !== undefined && (
         <div className="grid grid-cols-4 gap-2 text-xs">
-          <Metric label="ROC-AUC" value={card.roc_auc?.toFixed(3)} />
-          <Metric label="F1" value={card.f1_score?.toFixed(3)} />
-          <Metric label="Precision" value={card.precision?.toFixed(3)} />
-          <Metric label="Recall" value={card.recall?.toFixed(3)} />
+          <div><p className="text-[10px] text-stone-400">ROC-AUC</p><p className="font-bold text-stone-900">{card.roc_auc?.toFixed(3)}</p></div>
+          <div><p className="text-[10px] text-stone-400">F1</p><p className="font-bold text-stone-900">{card.f1_score?.toFixed(3)}</p></div>
+          <div><p className="text-[10px] text-stone-400">Precision</p><p className="font-bold text-stone-900">{card.precision?.toFixed(3)}</p></div>
+          <div><p className="text-[10px] text-stone-400">Recall</p><p className="font-bold text-stone-900">{card.recall?.toFixed(3)}</p></div>
         </div>
       )}
       {card.training_rows && (
-        <p className="text-xs opacity-60 mt-2">
-          {card.training_rows} train · {card.test_rows} test rows
+        <p className="text-[10px] text-stone-400 mt-2">
+          {card.training_rows} training rows · {card.test_rows} validation rows
         </p>
       )}
     </div>
   );
 }
-
-function Metric({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <p className="opacity-60">{label}</p>
-      <p className="font-bold">{value ?? "—"}</p>
-    </div>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="text-center py-10 text-slate-500 text-sm">{message}</div>
-  );
-}
-

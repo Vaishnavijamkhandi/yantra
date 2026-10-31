@@ -8,10 +8,10 @@ export default function Navbar() {
     return (
       <Link
         to={to}
-        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
           isActive
-            ? "bg-blue-900 text-white shadow-sm"
-            : "text-blue-100 hover:bg-blue-700 hover:text-white"
+            ? "bg-[#800020] text-white shadow-xs"
+            : "text-stone-700 hover:text-[#800020] hover:bg-[#ede5d8]"
         }`}
       >
         {label}
@@ -20,21 +20,38 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-blue-800 text-white shadow-md sticky top-0 z-50">
+    <nav className="bg-[#f5f0e6] border-b border-[#e5ded0] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-          <span className="text-xl font-bold tracking-tight">🏥 YantraX</span>
-          <span className="text-blue-300 text-xs px-2 py-0.5 rounded bg-blue-900/60 font-medium">
-            Phase 1–4 + ML
-          </span>
+        <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition-opacity">
+          {/* Maroon Emblem */}
+          <div className="w-8 h-8 rounded-lg bg-[#800020] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+            🛡️
+          </div>
+
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-black tracking-tight text-[#800020] font-mono">
+                CyberSaathi
+              </span>
+              <span className="text-stone-400 font-mono text-xs">/</span>
+              <span className="text-xs font-bold text-stone-800">
+                Risk Platform
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-600" title="Active Platform Telemetry" />
+            </div>
+            <span className="text-[10px] text-stone-500 font-medium tracking-wide uppercase">
+              Critical Infrastructure Assessment &amp; Remediation
+            </span>
+          </div>
         </Link>
+
         <div className="flex items-center gap-1 sm:gap-2">
           {navLink("/", "Dashboard")}
           {navLink("/assets", "Assets")}
-          {navLink("/vulnerabilities", "CVE Database")}
+          {navLink("/vulnerabilities", "CVE Intel")}
           {navLink("/assessment", "Assessment")}
           {navLink("/infrastructure", "Infrastructure Map")}
-          {navLink("/ml", "ML Insights")}
+          {navLink("/ml", "Risk Prediction")}
         </div>
       </div>
     </nav>
