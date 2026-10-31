@@ -1,0 +1,21 @@
+asset_name,asset_type,ip_address,operating_system,criticality,exposure,department,environment
+Patient Management Server,Server,192.168.1.10,Ubuntu Server 22.04,Critical,Internal,Patient Services,Simulated
+Hospital Core Database,Database,192.168.1.11,Linux (RHEL 9),Critical,Internal,Administration,Simulated
+ICU Monitoring System,IoT,192.168.1.12,Embedded Linux,Critical,Internal,ICU,Simulated
+Pharmacy Dispensing System,Application,192.168.1.15,Linux,High,Internal,Pharmacy,Simulated
+Emergency Response Server,Server,192.168.1.20,Ubuntu Server 20.04,Critical,Internal,Emergency,Simulated
+CCTV Surveillance Server,Server,192.168.1.13,Linux (Debian 11),Medium,Internal,Security,Simulated
+Admin Workstation A,Computer,192.168.1.14,Windows 11 Pro,Medium,Internal,Administration,Simulated
+Finance Workstation B,Computer,192.168.1.30,Windows 10 Pro,Medium,Internal,Finance,Simulated
+Network Firewall Primary,Firewall,192.168.1.1,Cisco ASA,Critical,External,IT Infrastructure,Simulated
+Core Network Router,Router,192.168.1.2,Cisco IOS,Critical,Internal,IT Infrastructure,Simulated
+Guest Wi-Fi Access Point,Router,192.168.1.50,OpenWRT,Low,External,Facilities,Simulated
+Backup Storage Server,Server,192.168.1.40,Ubuntu Server 22.04,High,Internal,IT Infrastructure,Simulated
+Hospital Email Server,Server,192.168.1.41,Linux (Debian 11),High,Internal,Administration,Simulated
+Laboratory Information System,Application,192.168.1.60,Linux,High,Internal,Laboratory,Simulated
+Nurse Station Printer Network,IoT,192.168.1.70,Embedded,Low,Internal,Nursing,Simulated
+Radiology PACS Server,Server,192.168.1.80,Windows Server 2019,Critical,Internal,Radiology,Simulated
+HR Management System,Application,192.168.1.90,Linux,Medium,Internal,HR,Simulated
+Telemedicine Platform,Application,192.168.2.10,Ubuntu 22.04,High,External,Patient Services,Simulated
+Blood Bank System,Application,192.168.1.100,Linux,Critical,Internal,Blood Bank,Simulated
+Medical Records Server,Server,192.168.1.110,Ubuntu Server 22.04,Critical,Internal,Medical Records,Simulated

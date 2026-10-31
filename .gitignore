@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Secrets
+.env
+
+# React / Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Alembic (keep versions, ignore pyc inside)
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

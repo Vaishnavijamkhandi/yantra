@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17
+    container_name: yantrax-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yantrauser
+      POSTGRES_PASSWORD: yantra1234
+      POSTGRES_DB: yantraxdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
