@@ -247,3 +247,4 @@ def predict_asset_risk(asset_id: int, db: "Session") -> dict | None:
         "algorithm": algorithm,
         "warning": "Experimental prediction. Not a confirmed security assessment.",
     }
+

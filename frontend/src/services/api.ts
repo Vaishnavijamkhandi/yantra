@@ -38,13 +38,29 @@ export async function getAssets(params?: {
   if (params?.exposure) query.set("exposure", params.exposure);
   if (params?.environment) query.set("environment", params.environment);
 
-  const res = await fetch(`${API_URL}/api/assets/?${query.toString()}`);
+  const qs = query.toString();
+  const res = await fetch(qs ? `${API_URL}/api/assets/?${qs}` : `${API_URL}/api/assets/`);
   return handleResponse<Asset[]>(res);
 }
 
 export async function getAsset(id: number): Promise<Asset> {
   const res = await fetch(`${API_URL}/api/assets/${id}`);
   return handleResponse<Asset>(res);
+}
+
+export async function getAssetDependencies(assetId: number): Promise<import("../types/asset").AssetDependency[]> {
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/dependencies`);
+  return handleResponse<import("../types/asset").AssetDependency[]>(res);
+}
+
+export async function getInfrastructureMap(): Promise<import("../types/asset").InfrastructureMap> {
+  const res = await fetch(`${API_URL}/api/assets/infrastructure-map`);
+  return handleResponse<import("../types/asset").InfrastructureMap>(res);
+}
+
+export async function getAssetImpact(assetId: number): Promise<import("../types/asset").DependencyImpact> {
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/impact`);
+  return handleResponse<import("../types/asset").DependencyImpact>(res);
 }
 
 export async function createAsset(data: AssetCreate): Promise<Asset> {
@@ -96,7 +112,8 @@ export async function getVulnerabilities(params?: {
   if (params?.limit) query.set("limit", params.limit.toString());
   if (params?.offset) query.set("offset", params.offset.toString());
 
-  const res = await fetch(`${API_URL}/api/vulnerabilities/?${query.toString()}`);
+  const qs = query.toString();
+  const res = await fetch(qs ? `${API_URL}/api/vulnerabilities/?${qs}` : `${API_URL}/api/vulnerabilities/`);
   return handleResponse<Vulnerability[]>(res);
 }
 

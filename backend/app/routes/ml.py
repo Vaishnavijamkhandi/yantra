@@ -175,12 +175,25 @@ def train_supervised(background_tasks: BackgroundTasks, db: Session = Depends(ge
     }
 
 
+def _resolve_epss_path() -> Path:
+    candidates = [
+        Path(settings.EPSS_CSV_PATH),
+        Path(__file__).resolve().parents[3] / "dataset" / "epss_scores.csv",
+        Path(__file__).resolve().parents[2] / "dataset" / "epss_scores.csv",
+        Path("dataset/epss_scores.csv"),
+    ]
+    for p in candidates:
+        if p.exists() and p.is_file():
+            return p.resolve()
+    return Path(settings.EPSS_CSV_PATH).resolve()
+
+
 @router.post("/epss/load")
 def load_epss(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Load the EPSS CSV into the epss_scores table."""
     from app.ml.epss_loader import load_epss_csv
 
-    csv_path = Path(settings.EPSS_CSV_PATH)
+    csv_path = _resolve_epss_path()
     if not csv_path.exists():
         raise HTTPException(
             status_code=404,
@@ -217,3 +230,4 @@ def get_epss(cve_id: str, db: Session = Depends(get_db)):
         "is_high_risk": record.is_high_risk,
         "label": record.risk_label,
     }
+

@@ -156,3 +156,4 @@ FEATURE_COLS = [
     "match_confidence",
     "asset_type_encoded",
 ]
+

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
@@ -17,6 +17,37 @@ class AssetSoftware(Base):
     software_type: Mapped[str] = mapped_column(String(80), nullable=False)
 
     asset: Mapped["Asset"] = relationship("Asset", back_populates="software")
+
+
+class AssetDependency(Base):
+    __tablename__ = "asset_dependencies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_asset_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False
+    )
+    target_asset_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False
+    )
+    dependency_type: Mapped[str] = mapped_column(String(30), nullable=False, default="depends_on")
+    dependency_strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
+    service_impact: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    source_asset: Mapped["Asset"] = relationship(
+        "Asset",
+        foreign_keys=[source_asset_id],
+        back_populates="outgoing_dependencies",
+    )
+    target_asset: Mapped["Asset"] = relationship(
+        "Asset",
+        foreign_keys=[target_asset_id],
+        back_populates="incoming_dependencies",
+    )
 
 
 class Asset(Base):
@@ -40,6 +71,19 @@ class Asset(Base):
     software: Mapped[list["AssetSoftware"]] = relationship(
         "AssetSoftware",
         back_populates="asset",
+        cascade="all, delete-orphan",
+    )
+
+    outgoing_dependencies: Mapped[list["AssetDependency"]] = relationship(
+        "AssetDependency",
+        foreign_keys="AssetDependency.source_asset_id",
+        back_populates="source_asset",
+        cascade="all, delete-orphan",
+    )
+    incoming_dependencies: Mapped[list["AssetDependency"]] = relationship(
+        "AssetDependency",
+        foreign_keys="AssetDependency.target_asset_id",
+        back_populates="target_asset",
         cascade="all, delete-orphan",
     )
 

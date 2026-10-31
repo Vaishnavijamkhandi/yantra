@@ -3,7 +3,8 @@ import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.models.asset import Asset, AssetSoftware
+from app.models.asset import Asset, AssetSoftware, AssetDependency
+from app.services.risk_engine import assess_dependency_impact
 from app.schemas.asset import (
     AssetCreate,
     AssetUpdate,
@@ -158,4 +159,99 @@ async def import_assets(
 
     db.commit()
     return ImportReport(imported=imported, failed=len(errors), errors=errors)
+
+
+@router.post("/{asset_id}/dependencies")
+def add_asset_dependency(
+    asset_id: int,
+    target_asset_id: int = Query(...),
+    dependency_type: str = Query(default="depends_on"),
+    dependency_strength: float = Query(default=0.5),
+    service_impact: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    source = db.query(Asset).filter(Asset.id == asset_id).first()
+    target = db.query(Asset).filter(Asset.id == target_asset_id).first()
+    if not source or not target:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    dep = AssetDependency(
+        source_asset_id=source.id,
+        target_asset_id=target.id,
+        dependency_type=dependency_type,
+        dependency_strength=max(0.0, min(1.0, dependency_strength)),
+        service_impact=service_impact,
+    )
+    db.add(dep)
+    db.commit()
+    db.refresh(dep)
+    return {
+        "id": dep.id,
+        "source_asset_id": dep.source_asset_id,
+        "target_asset_id": dep.target_asset_id,
+        "dependency_type": dep.dependency_type,
+        "dependency_strength": dep.dependency_strength,
+        "service_impact": dep.service_impact,
+    }
+
+
+@router.get("/{asset_id}/dependencies")
+def list_asset_dependencies(asset_id: int, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    dependencies = []
+    for dep in asset.outgoing_dependencies:
+        target = dep.target_asset
+        dependencies.append(
+            {
+                "id": dep.id,
+                "source_asset_id": dep.source_asset_id,
+                "target_asset_id": dep.target_asset_id,
+                "target_asset_name": target.asset_name,
+                "dependency_type": dep.dependency_type,
+                "dependency_strength": dep.dependency_strength,
+                "service_impact": dep.service_impact,
+            }
+        )
+    return dependencies
+
+
+@router.get("/infrastructure-map")
+def infrastructure_map(db: Session = Depends(get_db)):
+    assets = db.query(Asset).all()
+    nodes = []
+    edges = []
+    for asset in assets:
+        nodes.append(
+            {
+                "id": asset.id,
+                "label": asset.asset_name,
+                "type": asset.asset_type,
+                "criticality": asset.criticality,
+                "department": asset.department,
+            }
+        )
+
+    for asset in assets:
+        for dep in asset.outgoing_dependencies:
+            edges.append(
+                {
+                    "from": dep.source_asset_id,
+                    "to": dep.target_asset_id,
+                    "strength": dep.dependency_strength,
+                    "impact": dep.service_impact,
+                }
+            )
+
+    return {"nodes": nodes, "edges": edges, "asset_count": len(assets)}
+
+
+@router.get("/{asset_id}/impact")
+def asset_impact(asset_id: int, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return assess_dependency_impact(asset, db)
 

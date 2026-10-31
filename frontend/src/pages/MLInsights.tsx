@@ -331,3 +331,4 @@ function EmptyState({ message }: { message: string }) {
     <div className="text-center py-10 text-slate-500 text-sm">{message}</div>
   );
 }
+

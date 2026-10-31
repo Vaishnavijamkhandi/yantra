@@ -14,7 +14,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ── YantraX: inject DB URL from .env and import models ───────────────────────
+# ── CyberSentra: inject DB URL from .env and import models ───────────────────────
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

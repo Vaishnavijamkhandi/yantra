@@ -177,7 +177,7 @@ async def sync_keyword(keyword: str, db: Session, max_results: int = 500) -> dic
     inserted = updated = skipped = 0
 
     async with httpx.AsyncClient(
-        headers={"User-Agent": "YantraX-Hospital-Asset-Manager/1.0"}
+        headers={"User-Agent": "CyberSentra-Hospital-Asset-Manager/1.0"}
     ) as client:
         start = 0
         while start < max_results:

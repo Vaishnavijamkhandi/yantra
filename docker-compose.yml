@@ -1,12 +1,12 @@
 services:
   db:
     image: postgres:17
-    container_name: yantrax-db
+    container_name: CyberSentra-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: yantrauser
       POSTGRES_PASSWORD: yantra1234
-      POSTGRES_DB: yantraxdb
+      POSTGRES_DB: CyberSentradb
     ports:
       - "5432:5432"
     volumes:

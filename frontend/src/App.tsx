@@ -5,6 +5,7 @@ import AssetInventory from "./pages/AssetInventory";
 import AssetDetail from "./pages/AssetDetail";
 import Vulnerabilities from "./pages/Vulnerabilities";
 import Assessment from "./pages/Assessment";
+import InfrastructureMap from "./pages/InfrastructureMap";
 import MLInsights from "./pages/MLInsights";
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/assets/:id" element={<AssetDetail />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route path="/assessment" element={<Assessment />} />
+            <Route path="/infrastructure" element={<InfrastructureMap />} />
             <Route path="/ml" element={<MLInsights />} />
           </Routes>
         </main>

@@ -69,3 +69,4 @@ class MLModelCard(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+

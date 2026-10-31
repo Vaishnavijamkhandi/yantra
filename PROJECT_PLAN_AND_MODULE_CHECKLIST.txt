@@ -1,0 +1,125 @@
+PROJECT PLAN AND MODULE CHECKLIST
+
+1. Problem Statement Mapping
+
+Module 1: Asset Profiling and Inventory
+- Asset creation and management
+- criticality and exposure labels
+- software inventory per asset
+- CSV import of infrastructure records
+Status: Implemented
+
+Module 2: Vulnerability Assessment
+- software-to-CVE mapping
+- severity evaluation
+- risk evidence linking
+- known vulnerability database integration
+Status: Implemented
+
+Module 3: AI-Based Risk Prediction
+- deterministic risk engine
+- ML experimentation
+- anomaly detection and supervised risk modeling
+- model cards and training workflow
+Status: Prototype / Experimental
+
+Module 4: Risk Prioritization
+- risk score generation
+- criticality ranking
+- urgency sorting
+- fleet summary metrics
+Status: Implemented
+
+Module 5: Dependency and Impact Analysis
+- asset-to-asset dependency relationship model
+- downstream impact estimation
+- blast-radius simulation
+- infrastructure map / what-if assessment
+Status: Partially implemented; needs deeper realism and UX polish
+
+Module 6: Predictive Risk Dashboard
+- KPI summaries
+- prioritized asset list
+- risk filter and search
+- operational view of fleet risk
+Status: Implemented
+
+Module 7: Preventive Recommendations
+- patch prioritization guidance
+- exposure reduction suggestions
+- continuity / resilience recommendations
+Status: Implemented at prototype level
+
+Module 8: Governance / Production Readiness
+- login / authentication
+- RBAC / authorization
+- audit trails
+- approval workflows
+- secure deployment controls
+Status: Not yet implemented
+
+2. Current Honest Status
+
+The project is a strong cyber-risk prototype aligned to the PS.
+It covers the core requirements of:
+- asset inventory
+- vulnerability assessment
+- risk scoring
+- prioritization
+- dashboarding
+- recommendation generation
+
+It is still not a full production-grade critical infrastructure platform because:
+- dependency modeling is not yet mature enough
+- AI model validation is still experimental
+- governance and operational controls are not yet implemented
+
+3. Action Plan
+
+Phase A: Validate core working modules
+- backend tests
+- API behavior
+- dashboard rendering
+- sample data flow
+Status: Verified
+
+Phase B: Close dependency and impact gap
+- deeper service dependency modeling
+- multi-hop blast radius
+- dependency UI controls
+Status: In progress
+
+Phase C: Strengthen AI honesty
+- real metrics
+- model comparison with proper evaluation
+- proper explanation of experimental status
+Status: Planned
+
+Phase D: Add governance and production readiness
+- auth, roles, audit logs
+- approval workflow
+- secure deployment controls
+Status: Planned
+
+4. Verification Evidence
+
+Backend tests passed:
+- command run: cd d:\cyber-risk-platform\backend ; pytest -q
+- result: 14 passed in 2.10s
+
+Frontend production build passed:
+- command run: Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; cd d:\cyber-risk-platform\frontend; npm run build
+- result: build succeeded
+
+5. Final Project Positioning
+
+This project should be described as:
+- a working prototype for AI-based critical infrastructure cyber-risk prediction
+- explainable, deterministic risk scoring + experimental ML support
+- aligned to the PS but not yet a full operational enterprise system
+
+6. Next Immediate Tasks
+- finalize module-by-module gap closure
+- improve dependency graph realism
+- add simple governance layer
+- document final project status clearly and honestly

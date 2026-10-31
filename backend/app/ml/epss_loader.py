@@ -143,3 +143,4 @@ def load_epss_csv(csv_path: str | Path, db: Session) -> dict:
 def get_epss_for_cve(cve_id: str, db: Session) -> EPSSScore | None:
     """Lookup a single CVE's EPSS record."""
     return db.query(EPSSScore).filter(EPSSScore.cve_id == cve_id.upper()).first()
+

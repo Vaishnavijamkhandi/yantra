@@ -21,6 +21,43 @@ export interface Asset {
   software: Software[];
 }
 
+export interface AssetDependency {
+  id: number;
+  source_asset_id: number;
+  target_asset_id: number;
+  target_asset_name?: string;
+  dependency_type: string;
+  dependency_strength: number;
+  service_impact?: string | null;
+}
+
+export interface InfrastructureMap {
+  nodes: Array<{
+    id: number;
+    label: string;
+    type: string;
+    criticality: string;
+    department?: string | null;
+  }>;
+  edges: Array<{
+    from: number;
+    to: number;
+    strength: number;
+    impact?: string | null;
+  }>;
+  asset_count: number;
+}
+
+export interface DependencyImpact {
+  asset_id: number;
+  asset_name: string;
+  downstream_assets: string[];
+  upstream_dependencies: string[];
+  affected_assets: string[];
+  blast_radius: number;
+  recommendations: string[];
+}
+
 export interface AssetCreate {
   asset_name: string;
   asset_type: string;

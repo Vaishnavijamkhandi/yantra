@@ -156,14 +156,14 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-              Hospital Cyber-Risk Operations Center
+              Cyber-Risk Operations Center
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
               Phase 3 &amp; 4 Active
             </span>
           </div>
           <p className="text-gray-500 text-sm mt-1">
-            Deterministic risk scoring, vulnerability intelligence, and explainable prioritization for healthcare IT.
+            Deterministic risk scoring, vulnerability intelligence, and explainable prioritization for IT.
           </p>
         </div>
 

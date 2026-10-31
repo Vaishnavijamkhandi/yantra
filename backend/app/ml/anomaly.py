@@ -139,3 +139,4 @@ def get_anomaly_scores(db: "Session") -> list[dict]:
     except Exception as exc:
         logger.error("Failed to load anomaly model: %s", exc)
         return []
+

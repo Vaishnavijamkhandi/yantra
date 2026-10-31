@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="YantraX — Hospital Cyber-Risk Platform API",
+    title="CyberSentra — Hospital Cyber-Risk Platform API",
     description="Phase 1–3 (Asset Inventory, Vulnerability Assessment, Risk Engine) + Phase 7 (ML)",
     version="4.0.0",
     lifespan=lifespan,
@@ -30,6 +30,7 @@ cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,7 +48,7 @@ app.include_router(ml_router)
 def health_check():
     return {
         "status": "running",
-        "message": "YantraX Hospital Cyber-Risk Platform API",
+        "message": "CyberSentra Hospital Cyber-Risk Platform API",
         "version": "3.0.0",
         "phase": "Phase 1 + Phase 2 + Phase 3",
         "docs": "/docs",

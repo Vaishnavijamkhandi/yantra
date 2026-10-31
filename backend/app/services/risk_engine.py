@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from app.models.asset import Asset
+from app.models.asset import Asset, AssetDependency
 from app.models.vulnerability import AssetVulnerability, Vulnerability
 from app.models.risk import RiskAssessment
 
@@ -175,6 +175,56 @@ def calculate_asset_risk(asset: Asset, db: Session) -> dict:
         "factors": factors,
         "explanation": explanation,
         "evidence_coverage": evidence_coverage,
+        "recommendations": recommendations,
+    }
+
+
+def assess_dependency_impact(asset: Asset, db: Session) -> dict:
+    """Return a simple blast-radius and impacted-service view for a compromised asset."""
+    downstream = (
+        db.query(AssetDependency)
+        .filter(AssetDependency.source_asset_id == asset.id)
+        .all()
+    )
+    upstream = (
+        db.query(AssetDependency)
+        .filter(AssetDependency.target_asset_id == asset.id)
+        .all()
+    )
+
+    affected_assets = []
+    for dep in downstream:
+        target = db.query(Asset).filter(Asset.id == dep.target_asset_id).first()
+        if target and target.asset_name not in affected_assets:
+            affected_assets.append(target.asset_name)
+
+    supporting_assets = []
+    for dep in upstream:
+        source = db.query(Asset).filter(Asset.id == dep.source_asset_id).first()
+        if source and source.asset_name not in supporting_assets:
+            supporting_assets.append(source.asset_name)
+
+    blast_radius = len(affected_assets) + len(supporting_assets)
+    recommendations = []
+    if downstream:
+        for dep in downstream:
+            if dep.service_impact:
+                recommendations.append(
+                    f"Contain {asset.asset_name} immediately to prevent impact on {dep.target_asset.asset_name}: {dep.service_impact}."
+                )
+                break
+    if not recommendations:
+        recommendations.append(
+            f"Isolate {asset.asset_name} and confirm service continuity for dependent systems before reactivation."
+        )
+
+    return {
+        "asset_id": asset.id,
+        "asset_name": asset.asset_name,
+        "downstream_assets": affected_assets,
+        "upstream_dependencies": supporting_assets,
+        "affected_assets": affected_assets,
+        "blast_radius": blast_radius,
         "recommendations": recommendations,
     }
 

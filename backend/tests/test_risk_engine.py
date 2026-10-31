@@ -2,9 +2,13 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
-from app.models.asset import Asset, AssetSoftware
+from app.models.asset import Asset, AssetSoftware, AssetDependency
 from app.models.vulnerability import Vulnerability, AssetVulnerability
-from app.services.risk_engine import calculate_asset_risk, classify_risk_level
+from app.services.risk_engine import (
+    calculate_asset_risk,
+    classify_risk_level,
+    assess_dependency_impact,
+)
 
 
 @pytest.fixture
@@ -119,4 +123,38 @@ def test_multiple_vulnerabilities_compounding(test_db):
     # Severity should compound higher than base 7.5 * 10 = 75
     assert result["severity_score"] > 75.0
     assert result["factors"]["matched_cve_count"] == 4
+
+
+def test_dependency_impact_analysis(test_db):
+    hospital = Asset(
+        asset_name="Hospital EHR Core",
+        asset_type="Application",
+        criticality="Critical",
+        exposure="Internal",
+        department="Clinical Systems",
+    )
+    lab = Asset(
+        asset_name="Lab System",
+        asset_type="Application",
+        criticality="High",
+        exposure="Internal",
+        department="Lab",
+    )
+    test_db.add_all([hospital, lab])
+    test_db.commit()
+
+    dep = AssetDependency(
+        source_asset_id=lab.id,
+        target_asset_id=hospital.id,
+        dependency_type="depends_on",
+        dependency_strength=0.9,
+        service_impact="Clinical workflow disruption",
+    )
+    test_db.add(dep)
+    test_db.commit()
+
+    impact = assess_dependency_impact(lab, test_db)
+    assert impact["affected_assets"] == [hospital.asset_name]
+    assert impact["blast_radius"] >= 1
+    assert "Clinical workflow disruption" in impact["recommendations"][0]
 

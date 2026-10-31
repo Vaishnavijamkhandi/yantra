@@ -1,0 +1,66 @@
+D3COY 1.0 – Problem Statement 03
+AI-BASED CRITICAL INFRASTRUCTURE CYBER-RISK PREDICTION
+
+PROBLEM STATEMENT
+Critical infrastructure includes power grids, water treatment, transportation, telecommunications, hospitals, and smart-city systems. These systems depend on interconnected digital and operational technologies, making them exposed to cyber threats through IoT devices, cloud infrastructure, ICS/OT systems, and vendor dependencies.
+
+A single vulnerability or compromised supplier can affect connected systems, causing service disruption, financial loss, and public-safety risks.
+
+The system must understand not just individual vulnerabilities, but also asset criticality, interdependencies, exposure, and the possible impact of compromise.
+
+CHALLENGE
+Develop an AI-powered cyber-risk prediction and prioritisation system that evaluates the security posture of critical infrastructure using simulated infrastructure data, vulnerability information, network activity, and asset criticality.
+
+The system should identify vulnerable components, estimate risk, predict assets needing urgent attention, and recommend preventive measures before incidents escalate.
+
+KEY OBJECTIVES
+1. Infrastructure Asset Profiling
+   Represent critical assets including power-grid systems, water treatment plants, hospitals, IoT devices, and industrial control systems with importance and dependencies.
+
+2. Vulnerability Assessment
+   Analyse asset inventories, software versions, configuration weaknesses, and exposed services to find security gaps.
+
+3. AI-Based Risk Prediction
+   Use machine learning or risk modelling to estimate likelihood and impact of cyber incidents using historical or simulated data.
+
+4. Risk Prioritization
+   Rank assets according to severity, exposure, operational importance, and consequences of compromise.
+
+5. Dependency and Impact Analysis
+   Identify how compromised components can affect connected assets and essential services.
+
+6. Predictive Risk Dashboard
+   Visualise risk scores, vulnerable assets, threat levels, and urgent attention items.
+
+7. Preventive Recommendations
+   Suggest actions such as patch prioritization, segmentation, access control, monitoring, and incident response planning.
+
+EXPECTED SOLUTION
+- Shift from reactive vulnerability management to proactive risk assessment
+- Provide a working prototype with asset inventory, vulnerability info, AI-generated risk scores, and recommendations
+- Explain why assets are high-risk and how fixing a vulnerability reduces overall infrastructure risk
+
+PROJECT GOAL
+Build a working prototype that demonstrates:
+- asset inventory and criticality
+- vulnerability matching and prioritisation
+- risk score generation
+- explainable recommendations
+- dashboard presentation
+- experimental ML-based threat prioritisation
+
+SUCCESS CRITERIA
+A solution should be considered complete when it can:
+- model assets and their criticality
+- correlate assets with vulnerabilities
+- generate risk scores
+- prioritize assets by urgency
+- show risk explanations
+- provide actionable recommendations
+- present all of this in a clear dashboard or interface
+
+IMPORTANT NOTES
+- This is a prototype and decision-support platform, not a production scanner.
+- Vulnerability matching should be conservative and explainable.
+- ML outputs should be treated as experimental support, not final operational truth.
+- The system should be evaluated with realistic, simulated data and clear assumptions.
