@@ -9,3 +9,4 @@ analytics-data-warehouse,Database,10.0.4.50,Ubuntu 22.04,Medium,Internal,Data In
 finance-ledger-workstation,Computer,10.0.5.101,Windows 11 Enterprise,High,Internal,Finance & Audit,Production
 factory-scada-controller,IoT,192.168.10.12,Embedded Linux,Critical,Internal,Manufacturing Operations,Production
 dev-testing-sandbox,Server,10.0.9.99,Ubuntu 20.04,Low,Internal,Engineering R&D,Development
+

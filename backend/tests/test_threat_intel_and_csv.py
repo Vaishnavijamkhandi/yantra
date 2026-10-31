@@ -60,3 +60,4 @@ def test_column_aliases_coverage():
     assert "business_unit" in COLUMN_ALIASES["department"]
     assert "priority" in COLUMN_ALIASES["criticality"]
     assert "network_exposure" in COLUMN_ALIASES["exposure"]
+
