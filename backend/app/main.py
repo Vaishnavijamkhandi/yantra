@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CyberSentra — Hospital Cyber-Risk Platform API",
+    title="CyberSentra — Enterprise Cyber-Risk Platform API",
     description="Phase 1–3 (Asset Inventory, Vulnerability Assessment, Risk Engine) + Phase 7 (ML)",
     version="4.0.0",
     lifespan=lifespan,
@@ -48,7 +48,7 @@ app.include_router(ml_router)
 def health_check():
     return {
         "status": "running",
-        "message": "CyberSentra Hospital Cyber-Risk Platform API",
+        "message": "CyberSentra Enterprise Cyber-Risk Platform API",
         "version": "3.0.0",
         "phase": "Phase 1 + Phase 2 + Phase 3",
         "docs": "/docs",

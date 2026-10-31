@@ -8,10 +8,10 @@ export default function Navbar() {
     return (
       <Link
         to={to}
-        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
           isActive
-            ? "bg-blue-900 text-white shadow-sm"
-            : "text-blue-100 hover:bg-blue-700 hover:text-white"
+            ? "bg-slate-800 text-white shadow-xs"
+            : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
         }`}
       >
         {label}
@@ -20,19 +20,22 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-blue-800 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+    <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-          <span className="text-xl font-bold tracking-tight">🏥 CyberSentra</span>
-          <span className="text-blue-300 text-xs px-2 py-0.5 rounded bg-blue-900/60 font-medium">
-            Phase 1–4 + ML
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-indigo-500/20" />
+            <span className="text-base font-bold tracking-tight text-white">CyberSentra</span>
+          </div>
+          <span className="hidden sm:inline-block text-slate-400 text-[11px] px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-medium">
+            Enterprise Cyber-Risk &amp; Vulnerability Platform
           </span>
         </Link>
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {navLink("/", "Dashboard")}
           {navLink("/assets", "Assets")}
           {navLink("/vulnerabilities", "CVE Database")}
-          {navLink("/assessment", "Assessment")}
+          {navLink("/assessment", "Assessment & Actions")}
           {navLink("/infrastructure", "Infrastructure Map")}
           {navLink("/ml", "ML Insights")}
         </div>

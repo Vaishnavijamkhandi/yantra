@@ -54,7 +54,7 @@ export default function Vulnerabilities() {
   async function handleSeed() {
     try {
       setActionLoading(true);
-      setStatusMessage("Seeding hospital CVEs into database...");
+      setStatusMessage("Seeding curated enterprise CVEs into database...");
       const res = await seedVulnerabilities();
       setStatusMessage(`✅ Seeded ${res.inserted} new CVEs (${res.updated} updated). Total: ${res.total}`);
       await loadData();
@@ -95,7 +95,7 @@ export default function Vulnerabilities() {
             disabled={actionLoading}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm disabled:opacity-50 transition-colors flex items-center gap-2"
           >
-            🌱 Seed Hospital CVEs
+            Seed Curated CVEs
           </button>
           <button
             onClick={handleNvdSync}
@@ -188,7 +188,7 @@ export default function Vulnerabilities() {
           <div className="p-12 text-center text-gray-500 space-y-3">
             <p className="text-base font-semibold">No vulnerabilities found in database.</p>
             <p className="text-sm text-gray-400">
-              Click &quot;🌱 Seed Hospital CVEs&quot; above to load sample hospital vulnerability records, or &quot;🔄 Sync from NVD API&quot;.
+              Click &quot;Seed Curated CVEs&quot; above to load sample hospital vulnerability records, or &quot;🔄 Sync from NVD API&quot;.
             </p>
           </div>
         ) : (

@@ -258,6 +258,8 @@ export interface WhatIfNotCuredInfo {
 }
 
 export interface ConsequencesInfo {
+  domain_category?: string;
+  primary_impact?: string;
   clinical_impact: string;
   operational_impact: string;
   legal_regulatory: string;

@@ -53,7 +53,7 @@ def assess_asset_risk(asset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/assess-all", response_model=AssessAllReport)
 def assess_all_assets_risk(db: Session = Depends(get_db)):
-    """Run risk scoring for all registered infrastructure assets in the hospital."""
+    """Run risk scoring for all registered infrastructure assets across the organization."""
     assets = db.query(Asset).all()
     if not assets:
         return AssessAllReport(assessed=0, average_score=0.0, critical_count=0, items=[])

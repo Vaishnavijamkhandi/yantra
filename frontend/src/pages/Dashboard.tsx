@@ -82,7 +82,7 @@ export default function Dashboard() {
     setActionBusy(true);
     try {
       await seedVulnerabilities();
-      setToastMessage("Seeded curated hospital CVEs successfully!");
+      setToastMessage("Seeded curated enterprise CVEs successfully!");
       await loadData();
     } catch (e: any) {
       setToastMessage(`Seed error: ${e.message}`);
@@ -253,7 +253,7 @@ export default function Dashboard() {
             {summary?.average_risk_score ?? 0}
             <span className="text-sm font-medium text-gray-400">/100</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Across all hospital systems</p>
+          <p className="text-xs text-gray-500 mt-1">Across all monitored enterprise assets</p>
         </div>
       </div>
 

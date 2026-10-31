@@ -1,0 +1,11 @@
+hostname,device_type,ip,os,priority,network_exposure,business_unit,stage
+auth-gateway-prod,Server,10.0.1.15,Ubuntu 22.04 LTS,Critical,External,Identity & Security,Production
+payments-api-cluster,Server,10.0.2.20,Red Hat Enterprise Linux 9,Critical,External,Fintech & Payments,Production
+customer-core-db,Database,10.0.2.25,PostgreSQL 16,Critical,Internal,Core Banking,Production
+order-processing-svc,Server,10.0.3.10,Debian 12,High,Internal,E-Commerce & Orders,Production
+perimeter-edge-firewall,Firewall,203.0.113.1,Cisco ASA,Critical,External,Infrastructure,Production
+corporate-vpn-gateway,Router,203.0.113.5,OpenWRT,High,External,Remote Access,Production
+analytics-data-warehouse,Database,10.0.4.50,Ubuntu 22.04,Medium,Internal,Data Intelligence,Production
+finance-ledger-workstation,Computer,10.0.5.101,Windows 11 Enterprise,High,Internal,Finance & Audit,Production
+factory-scada-controller,IoT,192.168.10.12,Embedded Linux,Critical,Internal,Manufacturing Operations,Production
+dev-testing-sandbox,Server,10.0.9.99,Ubuntu 20.04,Low,Internal,Engineering R&D,Development

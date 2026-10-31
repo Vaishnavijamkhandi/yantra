@@ -199,7 +199,7 @@ async def get_cve_action_plan(
 
     department = None
     asset_type = None
-    asset_name = "Hospital Infrastructure Asset"
+    asset_name = "Enterprise Infrastructure Asset"
     operating_system = None
 
     if asset_id:
@@ -250,7 +250,7 @@ def quarantine_asset(
     asset_id: int,
     db: Session = Depends(get_db),
 ):
-    """Isolate an asset from the internal hospital network."""
+    """Isolate an asset from the internal production network."""
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")

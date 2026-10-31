@@ -60,7 +60,7 @@ export default function Assessment() {
   async function handleRunAssessment() {
     try {
       setRunning(true);
-      setMessage("Running matching engine across all hospital assets...");
+      setMessage("Running vulnerability matching engine across all enterprise assets...");
       const summaryResult = await runAssessment();
       setMessage(
         `✅ Assessment completed! Scanned ${summaryResult.assets_assessed} assets. Identified ${summaryResult.total_matches} vulnerability matches across ${summaryResult.assets_with_vulnerabilities} affected assets.`
@@ -98,11 +98,11 @@ export default function Assessment() {
 
   // Quarantine Action
   async function handleQuarantine(assetId: number) {
-    if (!window.confirm(`Isolate and quarantine Asset #${assetId} from hospital networks?`)) return;
+    if (!window.confirm(`Isolate and quarantine Asset #${assetId} from internal production network?`)) return;
     try {
       const res = await quarantineAsset(assetId);
-      setActionSuccessMsg(`🚨 ${res.message}`);
-      setMessage(`🚨 Asset #${assetId} is now quarantined.`);
+      setActionSuccessMsg(`${res.message}`);
+      setMessage(`Asset #${assetId} is now quarantined.`);
       await loadData();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Quarantine failed");
@@ -115,7 +115,7 @@ export default function Assessment() {
     try {
       const res = await resolveFinding(findingId);
       setActionSuccessMsg(`✅ ${res.message}`);
-      setMessage(`✅ Vulnerability resolved for Asset #${res.asset_id}.`);
+      setMessage(`Vulnerability resolved for Asset #${res.asset_id}.`);
       setActiveFinding(null);
       await loadData();
     } catch (err: unknown) {
@@ -300,32 +300,32 @@ export default function Assessment() {
                       {r.vulnerability.description}
                     </td>
 
-                    {/* ⚡ REAL ACTION COLUMN */}
+                    {/* ACTION PLAN COLUMN */}
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleOpenActionPlan(r)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-2.5 py-1 rounded text-xs shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
-                          title="View Remedy, Exploit Threat, & Hospital Consequences"
+                          className="bg-indigo-700 hover:bg-indigo-800 text-white font-medium px-3 py-1.5 rounded-md text-xs shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Open detailed remediation plan, threat vectors, and business consequences"
                         >
-                          <span>⚡ Take Action</span>
+                          <span>Remediation Plan</span>
                         </button>
                         <button
                           onClick={() => handleQuarantine(r.asset_id)}
-                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer"
-                          title="Isolate this machine on hospital network"
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                          title="Isolate this host from the enterprise network"
                         >
-                          🚨 Quarantine
+                          Isolate Host
                         </button>
                         {r.vulnerability.reference_url && (
                           <a
                             href={r.vulnerability.reference_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-gray-400 hover:text-blue-600 text-xs px-1"
-                            title="Official Advisory"
+                            className="text-slate-500 hover:text-blue-600 text-xs px-1 font-medium"
+                            title="Official NIST NVD Advisory"
                           >
-                            NVD ↗
+                            Advisory ↗
                           </a>
                         )}
                       </div>
@@ -384,36 +384,36 @@ export default function Assessment() {
             )}
 
             {/* Navigation Tabs (Remedy / Threat / Consequences) */}
-            <div className="flex border-b border-gray-100 px-6 pt-2 bg-white">
+            <div className="flex border-b border-gray-200 px-6 pt-2 bg-slate-50/50">
               <button
                 onClick={() => setActiveTab("remedy")}
                 className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTab === "remedy"
-                    ? "border-emerald-600 text-emerald-700 bg-emerald-50/30"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-indigo-600 text-indigo-700 bg-white"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span>💊 1. Remedy (The Cure)</span>
+                <span>1. Technical Remediation</span>
               </button>
               <button
                 onClick={() => setActiveTab("threat")}
                 className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTab === "threat"
-                    ? "border-amber-600 text-amber-700 bg-amber-50/30"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-amber-600 text-amber-700 bg-white"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span>⚠️ 2. What If Not Cured</span>
+                <span>2. Threat Vector & Exploitability</span>
               </button>
               <button
                 onClick={() => setActiveTab("consequences")}
                 className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeTab === "consequences"
-                    ? "border-rose-600 text-rose-700 bg-rose-50/30"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-rose-600 text-rose-700 bg-white"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span>🏥 3. Hospital Consequences</span>
+                <span>3. Business & Operational Impact</span>
               </button>
             </div>
 
@@ -436,7 +436,7 @@ export default function Assessment() {
                         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-bold uppercase tracking-wide text-emerald-800 flex items-center gap-1">
-                              <span>🏛️ Official CISA Action Directive</span>
+                              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Official CISA Action Directive</span>
                             </span>
                             {actionPlan.remedy.due_date && (
                               <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
@@ -542,40 +542,52 @@ export default function Assessment() {
                   {/* TAB 3: CONSEQUENCES */}
                   {activeTab === "consequences" && (
                     <div className="space-y-4">
-                      {/* Clinical Impact */}
+                      {/* Industry Domain Header */}
+                      {actionPlan.consequences.domain_category && (
+                        <div className="flex items-center justify-between bg-slate-100 border border-slate-200 rounded-lg px-4 py-2">
+                          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Evaluated Organizational Context:
+                          </span>
+                          <span className="text-xs font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded border border-slate-200">
+                            {actionPlan.consequences.domain_category}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Primary Business & Mission Impact */}
                       <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-1">
-                        <span className="text-xs font-bold uppercase tracking-wide text-rose-800 flex items-center gap-1">
-                          <span>🩺 Clinical &amp; Patient Care Impact</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-rose-800 block">
+                          Mission & Core Business Impact:
                         </span>
                         <p className="text-sm text-rose-950 font-medium leading-relaxed">
-                          {actionPlan.consequences.clinical_impact}
+                          {actionPlan.consequences.primary_impact || actionPlan.consequences.clinical_impact}
                         </p>
                       </div>
 
                       {/* Operational Disruption */}
                       <div className="border border-gray-200 rounded-xl p-4 space-y-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                          Operational Hospital Disruption:
+                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Operational Service Disruption:
                         </span>
-                        <p className="text-sm text-gray-800">
+                        <p className="text-sm text-gray-800 leading-relaxed">
                           {actionPlan.consequences.operational_impact}
                         </p>
                       </div>
 
-                      {/* Legal & HIPAA */}
+                      {/* Legal, Regulatory & Compliance */}
                       <div className="border border-gray-200 rounded-xl p-4 space-y-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                          Legal, Regulatory &amp; HIPAA Penalties:
+                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Legal, Compliance & Regulatory Liability:
                         </span>
-                        <p className="text-sm text-gray-800 font-medium">
+                        <p className="text-sm text-gray-800 font-medium leading-relaxed">
                           {actionPlan.consequences.legal_regulatory}
                         </p>
                       </div>
 
                       {/* Financial Damage */}
-                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-600">
-                          Estimated Financial Disruption Cost:
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-600">
+                          Estimated Financial Exposure:
                         </span>
                         <span className="text-sm font-bold text-rose-700">
                           {actionPlan.consequences.financial_cost}
@@ -594,13 +606,13 @@ export default function Assessment() {
                   onClick={() => handleQuarantine(activeFinding.asset_id)}
                   className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer"
                 >
-                  🚨 Quarantine Asset
+                  Isolate / Quarantine Host
                 </button>
                 <button
                   onClick={() => handleResolveFinding(activeFinding.id)}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer"
                 >
-                  ✅ Mark Remediated
+                  Mark as Remediated
                 </button>
               </div>
               <div className="flex items-center gap-2">
