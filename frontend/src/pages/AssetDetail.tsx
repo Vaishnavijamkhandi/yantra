@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getAsset, deleteAsset, updateAsset } from "../services/api";
-import type { Asset, AssetUpdate } from "../types/asset";
+import { getAsset, deleteAsset, updateAsset, getAssetVulnerabilities } from "../services/api";
+import type { Asset, AssetUpdate, AssetVulnerability } from "../types/asset";
 
 const CRITICALITY_COLORS: Record<string, string> = {
   Critical: "bg-red-100 text-red-700",
@@ -10,10 +10,18 @@ const CRITICALITY_COLORS: Record<string, string> = {
   Low: "bg-green-100 text-green-700",
 };
 
+const SEVERITY_BADGES: Record<string, string> = {
+  CRITICAL: "bg-red-100 text-red-800 border-red-300",
+  HIGH: "bg-orange-100 text-orange-800 border-orange-300",
+  MEDIUM: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  LOW: "bg-green-100 text-green-800 border-green-300",
+};
+
 export default function AssetDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [asset, setAsset] = useState<Asset | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<AssetVulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -25,8 +33,16 @@ export default function AssetDetail() {
 
   useEffect(() => {
     if (!id) return;
-    getAsset(Number(id))
-      .then(data => { setAsset(data); setEditForm(data); })
+    const assetId = Number(id);
+    Promise.all([
+      getAsset(assetId),
+      getAssetVulnerabilities(assetId).catch(() => []),
+    ])
+      .then(([assetData, vulnsData]) => {
+        setAsset(assetData);
+        setEditForm(assetData);
+        setVulnerabilities(vulnsData);
+      })
       .catch(() => setError("Asset not found"))
       .finally(() => setLoading(false));
   }, [id]);
@@ -82,8 +98,8 @@ export default function AssetDetail() {
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-2">
         <Link to="/assets" className="text-blue-600 hover:underline text-sm">← Inventory</Link>
         <span className="text-gray-400">/</span>
         <span className="text-sm text-gray-600">{asset.asset_name}</span>
@@ -117,8 +133,10 @@ export default function AssetDetail() {
 
         {/* Software */}
         {asset.software.length > 0 && (
-          <div className="px-6 pb-6">
-            <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Installed Software ({asset.software.length})</h2>
+          <div className="px-6 pb-6 border-t border-gray-100 pt-4">
+            <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+              Installed Software ({asset.software.length})
+            </h2>
             <div className="grid gap-2">
               {asset.software.map(sw => (
                 <div key={sw.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2 border border-gray-100">
@@ -136,8 +154,79 @@ export default function AssetDetail() {
           </div>
         )}
 
+        {/* Phase 2: Detected Vulnerabilities */}
+        <div className="px-6 pb-6 border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <span>⚠️ Known CVE Vulnerabilities</span>
+              <span className={`px-2 py-0.5 text-xs rounded-full font-bold ${
+                vulnerabilities.length > 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+              }`}>
+                {vulnerabilities.length}
+              </span>
+            </h2>
+            <Link to="/assessment" className="text-xs text-indigo-600 hover:underline">
+              Go to Assessment Engine →
+            </Link>
+          </div>
+
+          {vulnerabilities.length === 0 ? (
+            <div className="bg-green-50/50 border border-green-200 rounded-lg p-3 text-xs text-green-800">
+              ✅ No known vulnerabilities matched yet. Run the Assessment engine to evaluate against the latest CVE definitions.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {vulnerabilities.map((av) => {
+                const sev = av.vulnerability.severity?.toUpperCase() || "UNKNOWN";
+                return (
+                  <div
+                    key={av.id}
+                    className="p-3 bg-red-50/30 border border-red-100 rounded-lg text-sm space-y-1.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-blue-700">
+                          {av.vulnerability.cve_id}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-bold border ${
+                            SEVERITY_BADGES[sev] ?? "bg-gray-100 text-gray-700 border-gray-300"
+                          }`}
+                        >
+                          {sev}
+                        </span>
+                        {av.vulnerability.cvss_score && (
+                          <span className="text-xs font-semibold text-gray-700">
+                            CVSS {av.vulnerability.cvss_score.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>Matched: <strong className="text-gray-700">{av.matched_software}</strong></span>
+                        {av.vulnerability.reference_url && (
+                          <a
+                            href={av.vulnerability.reference_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            NVD ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {av.vulnerability.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
-        <div className="px-6 pb-6 flex gap-3 flex-wrap">
+        <div className="px-6 pb-6 flex gap-3 flex-wrap border-t border-gray-100 pt-4">
           {editing ? (
             <>
               <button onClick={handleSave} disabled={saving}

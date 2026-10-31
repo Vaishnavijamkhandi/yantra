@@ -64,3 +64,4 @@ class ImportReport(BaseModel):
     imported: int
     failed: int
     errors: list[str]
+

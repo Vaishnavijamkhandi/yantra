@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.core.config import settings
 from app.db.database import Base
-from app.models.asset import Asset, AssetSoftware  # noqa: F401 — needed for autogenerate
+from app.models.asset import Asset, AssetSoftware  # noqa: F401
+from app.models.vulnerability import Vulnerability, AssetVulnerability  # noqa: F401
 
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 

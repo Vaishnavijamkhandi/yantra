@@ -19,3 +19,4 @@ HR Management System,Application,192.168.1.90,Linux,Medium,Internal,HR,Simulated
 Telemedicine Platform,Application,192.168.2.10,Ubuntu 22.04,High,External,Patient Services,Simulated
 Blood Bank System,Application,192.168.1.100,Linux,Critical,Internal,Blood Bank,Simulated
 Medical Records Server,Server,192.168.1.110,Ubuntu Server 22.04,Critical,Internal,Medical Records,Simulated
+

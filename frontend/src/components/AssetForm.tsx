@@ -183,3 +183,4 @@ export default function AssetForm({ onSuccess, onCancel }: Props) {
     </form>
   );
 }
+

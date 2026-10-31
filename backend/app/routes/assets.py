@@ -158,3 +158,4 @@ async def import_assets(
 
     db.commit()
     return ImportReport(imported=imported, failed=len(errors), errors=errors)
+

@@ -42,3 +42,10 @@ class Asset(Base):
         back_populates="asset",
         cascade="all, delete-orphan",
     )
+
+    vulnerabilities: Mapped[list["AssetVulnerability"]] = relationship(  # noqa: F821
+        "AssetVulnerability",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )
+
