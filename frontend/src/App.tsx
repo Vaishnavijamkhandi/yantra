@@ -10,6 +10,7 @@ import Assessment from "./pages/Assessment";
 import Remediation from "./pages/Remediation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ChatBot from "./components/ChatBot";
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </main>
+                  <ChatBot />
                 </div>
               </ProtectedRoute>
             }

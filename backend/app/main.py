@@ -14,6 +14,7 @@ from app.routes.risks import router as risk_router
 from app.routes.ml import router as ml_router
 from app.routes.gaps import router as gap_router
 from app.routes.reports import router as report_router
+from app.routes.chat import router as chat_router
 
 
 @asynccontextmanager
@@ -58,6 +59,7 @@ app.include_router(asset_vuln_router)
 app.include_router(risk_router)
 app.include_router(ml_router)
 app.include_router(report_router)
+app.include_router(chat_router, prefix="/api/chat", tags=["AI Copilot"])
 
 
 @app.get("/")

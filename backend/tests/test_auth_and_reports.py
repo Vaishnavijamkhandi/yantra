@@ -121,3 +121,13 @@ def test_reports_summary_route(test_db):
     assert summary["status"] == "ready"
     assert "PDF" in summary["report_format"]
 
+
+def test_chat_copilot_route(test_db):
+    from app.routes.chat import chat_with_copilot, ChatRequest
+    req = ChatRequest(message="What is CVE-2023-20198?")
+    res = chat_with_copilot(req, db=test_db)
+    assert res.reply is not None
+    assert len(res.reply) > 20
+    assert res.model in ["gemini-3.5-flash", "gemini-3.8-flash", "cybersentra-local-expert"]
+
+

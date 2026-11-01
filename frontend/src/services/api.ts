@@ -470,3 +470,28 @@ export async function quarantineAsset(
   });
   return handleResponse(res);
 }
+
+// ── AI Copilot (Gemini) ────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: "user" | "assistant" | "model";
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  model: string;
+}
+
+export async function sendChatMessage(
+  message: string,
+  history: ChatMessage[] = [],
+  context?: Record<string, unknown>
+): Promise<ChatResponse> {
+  const res = await fetch(`${API_URL}/api/chat`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ message, history, context }),
+  });
+  return handleResponse<ChatResponse>(res);
+}
