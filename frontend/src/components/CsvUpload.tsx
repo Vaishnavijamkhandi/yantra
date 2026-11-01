@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { validateCsv, importValidatedAssets } from "../services/api";
+import {
+  validateCsv,
+  importValidatedAssets,
+  runAssessment,
+  runGapAnalysis,
+  assessAllRisks,
+} from "../services/api";
 import type { CsvValidationReport, AssetCreate } from "../types/asset";
 
 interface Props {
@@ -83,10 +89,26 @@ export default function CsvUpload({ onSuccess }: Props) {
       }));
 
     try {
-      const res = await importValidatedAssets(rowsToImport);
       setResultMessage({
         type: "success",
-        text: `Successfully committed ${res.imported} verified asset(s) to dataset "${datasetLabel}"!`,
+        text: `Ingesting ${rowsToImport.length} verified asset(s)...`,
+      });
+      const res = await importValidatedAssets(rowsToImport);
+
+      // Automatically run vulnerability assessment, gap analysis, and fleet risk
+      try {
+        await Promise.allSettled([
+          runAssessment(),
+          runGapAnalysis(),
+          assessAllRisks(),
+        ]);
+      } catch (pipelineErr) {
+        console.warn("Auto-pipeline completed with warnings:", pipelineErr);
+      }
+
+      setResultMessage({
+        type: "success",
+        text: `✓ Committed ${res.imported} asset(s) to dataset "${datasetLabel}". Automatically executed Vulnerability Assessment & Infrastructure Gap Analysis!`,
       });
 
       // Save dataset name to local history

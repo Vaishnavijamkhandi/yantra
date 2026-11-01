@@ -179,14 +179,28 @@ CURATED_CVES = [
 def seed_curated_vulnerabilities(db: Session) -> dict:
     inserted = 0
     updated = 0
+    valid_cols = {c.name for c in Vulnerability.__table__.columns}
+
     for item in CURATED_CVES:
-        existing = db.query(Vulnerability).filter(Vulnerability.cve_id == item["cve_id"]).first()
+        clean_item = {}
+        for k, v in item.items():
+            if k in valid_cols:
+                if isinstance(v, datetime):
+                    clean_item[k] = v.strftime("%Y-%m-%d")
+                else:
+                    clean_item[k] = v
+
+        cve_key = clean_item.get("cve_id")
+        if not cve_key:
+            continue
+
+        existing = db.query(Vulnerability).filter(Vulnerability.cve_id == cve_key).first()
         if existing:
-            for k, v in item.items():
+            for k, v in clean_item.items():
                 setattr(existing, k, v)
             updated += 1
         else:
-            vuln = Vulnerability(**item)
+            vuln = Vulnerability(**clean_item)
             db.add(vuln)
             inserted += 1
     db.commit()

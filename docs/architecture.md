@@ -1,27 +1,32 @@
-# Architecture
+# Architecture Overview
 
-## Component flow
+> Complete, in-depth architectural blueprint is available in [CYBERSENTRA_SYSTEM_ARCHITECTURE.md](./CYBERSENTRA_SYSTEM_ARCHITECTURE.md).
 
-1. Asset intake: manual CRUD or CSV import.
-2. Asset/software persistence: SQLAlchemy models in SQLite or PostgreSQL.
-3. Vulnerability synchronisation: NVD API v2.0 keyword search, with records cached locally.
-4. Matching: compare the asset software's product/version with available CPE criteria. Exact or range-compatible matches may be confirmed; ambiguous matches require verification.
-5. Risk engine: deterministic baseline score and factor explanations.
-6. Dashboard: aggregates stored assessments and ranks assets.
+## 1. High-Level Architecture
 
-## Backend boundaries
+CyberSentra is structured as a decoupled, modern multi-tier platform:
 
-- `routes/`: HTTP contract only
-- `services/`: persistence workflows and external API integration
-- `risk_engine/`: pure scoring and ML experimentation
-- `models/`: SQLAlchemy persistence models
-- `schemas/`: Pydantic request/response validation
+```
+[ Frontend: React 19 + TypeScript + TailwindCSS ]
+                     │  (REST / JSON API)
+                     ▼
+[ Backend: FastAPI + Pydantic v2 + SQLAlchemy 2.0 ]
+   ├── Analytical Engines:
+   │    ├── Explainable Risk Engine (40% Sev, 20% Exploit, 20% Exp, 20% Crit)
+   │    ├── Deterministic BFS Graph Incident Impact Simulator
+   │    ├── Infrastructure Gap Heuristics Analyzer
+   │    ├── Automated Ingestion & Assessment Pipeline
+   │    └── CyberSentra AI Security Copilot (Google Gemini + Local Expert)
+   ▼
+[ Persistence: Neon Cloud PostgreSQL / SQLite via Psycopg 3 ]
+```
 
-## Security and operational notes
+## 2. Core Functional Layers
 
-- Keep NVD keys in environment variables.
-- Set CORS origins explicitly for deployment.
-- The demo uses SQLite by default; PostgreSQL is supported.
-- Add authentication, authorisation, audit logging, backups, rate limiting and secrets management before production use.
-- Treat all imported inventory as untrusted input.
-- This prototype does not scan or modify infrastructure.
+1. **Asset Intake & Ingestion Pipeline**: Universal CSV column mapping with pre-flight validation. Auto-triggers vulnerability matching, gap analysis, and risk scoring upon commit.
+2. **Deterministic Risk Prioritization**: Multi-factor formulation combining CVSS severity, threat exploitability (EPSS), network exposure, and operational mission criticality.
+3. **Live Incident Impact Simulator**: Deterministic BFS traversal over directed functional dependencies (`asset_dependencies`). Models asset compromise, ransomware spread, service outages, and quarantine isolation with interactive SVG playback.
+4. **Interactive Remediation Twin**: What-If simulator on the dashboard calculating real-time risk score deltas for vendor patching and zero-trust microsegmentation.
+5. **AI Copilot**: Context-injected cybersecurity advisor generating compliance playbooks (IEC 62443, NIST CSF, HIPAA).
+
+Refer to [CYBERSENTRA_SYSTEM_ARCHITECTURE.md](./CYBERSENTRA_SYSTEM_ARCHITECTURE.md) for full database schemas, algorithm pseudocode, and API routing specifications.

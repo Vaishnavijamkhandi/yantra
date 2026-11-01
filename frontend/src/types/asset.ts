@@ -32,21 +32,117 @@ export interface AssetDependency {
   service_impact?: string | null;
 }
 
+export interface InfrastructureMapNode {
+  id: number;
+  label: string;
+  type: string;
+  criticality: string;
+  department?: string | null;
+  exposure?: string | null;
+  ip_address?: string | null;
+  status?: "healthy" | "at_risk" | "unknown" | string;
+  risk_score?: number | null;
+  risk_level?: string | null;
+}
+
+export interface InfrastructureMapEdge {
+  id?: string;
+  from: number;
+  to: number;
+  type?: string;
+  strength: number;
+  impact?: string | null;
+}
+
 export interface InfrastructureMap {
-  nodes: Array<{
+  nodes: InfrastructureMapNode[];
+  edges: InfrastructureMapEdge[];
+  asset_count: number;
+  dependency_count?: number;
+  timestamp?: string;
+}
+
+// ── Simulation Types ──────────────────────────────────────────────────────
+
+export interface SimulationScenario {
+  id: string;
+  title: string;
+  description: string;
+  traversal_mode: string;
+  decay_per_hop: number;
+}
+
+export interface SimulationRunRequest {
+  initial_asset_id: number;
+  scenario_type: "asset_compromise" | "ransomware" | "service_outage" | "network_isolation" | string;
+  severity?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface AffectedAssetDetail {
+  asset_id: number;
+  asset_name: string;
+  asset_type: string;
+  criticality: string;
+  department: string;
+  impact_level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | string;
+  distance: number;
+  path: number[];
+  path_labels: string[];
+  reason: string;
+  potential_service_disruption: string;
+  recommended_mitigation: string;
+  is_critical_service: boolean;
+}
+
+export interface SimulationTimelineEvent {
+  timestamp_offset_seconds: number;
+  event_time_label: string;
+  phase: "initial_compromise" | "direct_propagation" | "cascading_spread" | "completed" | string;
+  asset_id: number;
+  asset_name: string;
+  description: string;
+  impact_tier: string;
+}
+
+export interface SimulationActivePath {
+  from: number;
+  to: number;
+  hop: number;
+  strength: number;
+  impact: string;
+}
+
+export interface SimulationResult {
+  simulation_id: string;
+  initial_asset: {
     id: number;
-    label: string;
+    name: string;
     type: string;
     criticality: string;
+    exposure?: string | null;
     department?: string | null;
-  }>;
-  edges: Array<{
-    from: number;
-    to: number;
-    strength: number;
-    impact?: string | null;
-  }>;
-  asset_count: number;
+  };
+  scenario_type: string;
+  scenario_title: string;
+  severity: string;
+  status: "idle" | "running" | "paused" | "completed" | "stopped" | string;
+  summary: {
+    total_affected_assets: number;
+    directly_affected: number;
+    indirectly_affected: number;
+    critical_assets_affected: number;
+    max_propagation_depth: number;
+    potential_blast_radius_pct: number;
+    total_fleet_count: number;
+    narrative_summary: string;
+  };
+  affected_assets: AffectedAssetDetail[];
+  active_paths: SimulationActivePath[];
+  timeline: SimulationTimelineEvent[];
+  disrupted_services: string[];
+  mitigation_recommendations: string[];
+  created_at: string;
 }
 
 export interface DependencyImpact {

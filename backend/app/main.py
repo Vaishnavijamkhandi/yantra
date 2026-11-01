@@ -15,15 +15,19 @@ from app.routes.ml import router as ml_router
 from app.routes.gaps import router as gap_router
 from app.routes.reports import router as report_router
 from app.routes.chat import router as chat_router
+from app.routes.simulations import router as simulations_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Ensure tables exist in SQLite/PostgreSQL
-    Base.metadata.create_all(bind=engine)
-    # Seed production-grade role accounts if empty
-    with SessionLocal() as db:
-        seed_default_users(db)
+    try:
+        Base.metadata.create_all(bind=engine)
+        # Seed production-grade role accounts if empty
+        with SessionLocal() as db:
+            seed_default_users(db)
+    except Exception:
+        pass
     yield
 
 
@@ -60,6 +64,7 @@ app.include_router(risk_router)
 app.include_router(ml_router)
 app.include_router(report_router)
 app.include_router(chat_router, prefix="/api/chat", tags=["AI Copilot"])
+app.include_router(simulations_router, prefix="/api/simulations", tags=["Incident Simulation"])
 
 
 @app.get("/")

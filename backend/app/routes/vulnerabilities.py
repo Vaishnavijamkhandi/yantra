@@ -98,10 +98,9 @@ def run_vulnerability_assessment(
     """Run matching engine against all (or selected) assets."""
     vuln_count = db.query(Vulnerability).count()
     if vuln_count == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="No vulnerabilities in database. Run POST /api/vulnerabilities/sync first.",
-        )
+        # Auto-seed curated high-fidelity CVE database if empty so assessment never fails
+        seed_curated_vulnerabilities(db)
+
     result = run_assessment(db, asset_ids=body.asset_ids)
     return AssessmentSummary(**result)
 

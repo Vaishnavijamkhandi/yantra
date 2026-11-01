@@ -495,3 +495,48 @@ export async function sendChatMessage(
   });
   return handleResponse<ChatResponse>(res);
 }
+
+// ── Live Incident Simulation ───────────────────────────────────────────────
+
+import type {
+  SimulationScenario,
+  SimulationRunRequest,
+  SimulationResult,
+} from "../types/asset";
+
+export async function getSimulationScenarios(): Promise<{ scenarios: SimulationScenario[] }> {
+  const res = await fetch(`${API_URL}/api/simulations/scenarios`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function runIncidentSimulation(
+  req: SimulationRunRequest
+): Promise<SimulationResult> {
+  const res = await fetch(`${API_URL}/api/simulations/run`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(req),
+  });
+  return handleResponse<SimulationResult>(res);
+}
+
+export async function getSimulationRun(
+  simulationId: string
+): Promise<SimulationResult> {
+  const res = await fetch(`${API_URL}/api/simulations/${simulationId}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<SimulationResult>(res);
+}
+
+export async function resetSimulationRun(
+  simulationId: string
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_URL}/api/simulations/${simulationId}/reset`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}

@@ -1,10 +1,48 @@
 import csv
 import io
+import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.asset import Asset, AssetSoftware, AssetDependency
+from app.models.risk import RiskAssessment
 from app.services.risk_engine import assess_dependency_impact
+from app.services.dependency_service import ensure_baseline_dependencies
+
+logger = logging.getLogger(__name__)
+
+
+def _trigger_automatic_pipeline(db: Session):
+    """Automatically seeds vulnerabilities if empty, runs vulnerability assessment,
+    analyzes infrastructure gaps, and computes risk scores across all assets upon CSV import."""
+    try:
+        from app.models.vulnerability import Vulnerability
+        from app.services.seed_data import seed_curated_vulnerabilities
+        from app.services.matcher import run_assessment
+        from app.services.gap_service import analyze_infrastructure_gaps
+        from app.services.risk_engine import assess_and_save_asset_risk
+
+        if db.query(Vulnerability).count() == 0:
+            seed_curated_vulnerabilities(db)
+
+        # 1. Auto-seed dependencies if needed
+        ensure_baseline_dependencies(db)
+
+        # 2. Run Vulnerability matching
+        run_assessment(db)
+
+        # 3. Run Gap analysis
+        analyze_infrastructure_gaps(db)
+
+        # 4. Assess Fleet Risks
+        for a in db.query(Asset).all():
+            try:
+                assess_and_save_asset_risk(a, db)
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.warning(f"Automatic assessment pipeline encountered non-fatal error: {exc}")
 from app.schemas.asset import (
     AssetCreate,
     AssetUpdate,
@@ -80,6 +118,70 @@ def list_assets(
         query = query.filter(Asset.environment == environment)
 
     return query.order_by(Asset.id.desc()).offset(offset).limit(limit).all()
+
+
+# ── INFRASTRUCTURE TOPOLOGY MAP (Must be defined before /{asset_id}) ──────────
+
+@router.get("/infrastructure-map")
+def infrastructure_map(db: Session = Depends(get_db)):
+    # Auto-seed baseline dependencies if table is empty
+    ensure_baseline_dependencies(db)
+
+    assets = db.query(Asset).all()
+    # Fetch latest risk assessment per asset
+    latest_risks: dict[int, RiskAssessment] = {}
+    for r in db.query(RiskAssessment).order_by(RiskAssessment.id.desc()).all():
+        if r.asset_id not in latest_risks:
+            latest_risks[r.asset_id] = r
+
+    nodes = []
+    edges = []
+    for asset in assets:
+        risk = latest_risks.get(asset.id)
+        if risk:
+            status = "at_risk" if risk.risk_score >= 60 else "healthy"
+            score = risk.risk_score
+            level = risk.risk_level
+        else:
+            status = "unknown"
+            score = None
+            level = "Unassessed"
+
+        nodes.append(
+            {
+                "id": asset.id,
+                "label": asset.asset_name,
+                "type": asset.asset_type,
+                "criticality": asset.criticality,
+                "department": asset.department,
+                "exposure": asset.exposure,
+                "ip_address": asset.ip_address,
+                "status": status,
+                "risk_score": score,
+                "risk_level": level,
+            }
+        )
+
+    for asset in assets:
+        for dep in asset.outgoing_dependencies:
+            edges.append(
+                {
+                    "id": f"dep-{dep.id}",
+                    "from": dep.source_asset_id,
+                    "to": dep.target_asset_id,
+                    "type": dep.dependency_type,
+                    "strength": dep.dependency_strength,
+                    "impact": dep.service_impact,
+                }
+            )
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "asset_count": len(assets),
+        "dependency_count": len(edges),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ── READ ONE ──────────────────────────────────────────────────────────────────
@@ -241,6 +343,7 @@ async def import_assets(
         imported += 1
 
     db.commit()
+    _trigger_automatic_pipeline(db)
     return ImportReport(imported=imported, failed=len(errors), errors=errors)
 
 
@@ -407,6 +510,7 @@ def import_validated_assets(
             errors.append(f"Error importing {item.asset_name}: {str(e)}")
 
     db.commit()
+    _trigger_automatic_pipeline(db)
     return ImportReport(imported=imported, failed=len(errors), errors=errors)
 
 @router.post("/{asset_id}/dependencies")
@@ -464,36 +568,6 @@ def list_asset_dependencies(asset_id: int, db: Session = Depends(get_db)):
             }
         )
     return dependencies
-
-
-@router.get("/infrastructure-map")
-def infrastructure_map(db: Session = Depends(get_db)):
-    assets = db.query(Asset).all()
-    nodes = []
-    edges = []
-    for asset in assets:
-        nodes.append(
-            {
-                "id": asset.id,
-                "label": asset.asset_name,
-                "type": asset.asset_type,
-                "criticality": asset.criticality,
-                "department": asset.department,
-            }
-        )
-
-    for asset in assets:
-        for dep in asset.outgoing_dependencies:
-            edges.append(
-                {
-                    "from": dep.source_asset_id,
-                    "to": dep.target_asset_id,
-                    "strength": dep.dependency_strength,
-                    "impact": dep.service_impact,
-                }
-            )
-
-    return {"nodes": nodes, "edges": edges, "asset_count": len(assets)}
 
 
 @router.get("/{asset_id}/impact")

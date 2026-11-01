@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env"),
         extra="ignore",
     )
 
