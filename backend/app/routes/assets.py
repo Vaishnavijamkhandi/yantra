@@ -10,6 +10,10 @@ from app.schemas.asset import (
     AssetUpdate,
     AssetResponse,
     ImportReport,
+    CsvValidationReport,
+    CsvRowValidation,
+    ValidatedImportRequest,
+    SoftwareCreate,
 )
 
 router = APIRouter(prefix="/api/assets", tags=["Assets"])
@@ -75,7 +79,7 @@ def list_assets(
     if environment:
         query = query.filter(Asset.environment == environment)
 
-    return query.offset(offset).limit(limit).all()
+    return query.order_by(Asset.id.desc()).offset(offset).limit(limit).all()
 
 
 # ── READ ONE ──────────────────────────────────────────────────────────────────
@@ -235,6 +239,172 @@ async def import_assets(
 
         db.add(asset)
         imported += 1
+
+    db.commit()
+    return ImportReport(imported=imported, failed=len(errors), errors=errors)
+
+
+@router.post("/validate-csv", response_model=CsvValidationReport)
+async def validate_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Please upload a CSV file")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
+
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or corrupted.")
+
+    raw_headers = list(reader.fieldnames)
+    header_map = {}
+    for target_key, aliases in COLUMN_ALIASES.items():
+        for col in raw_headers:
+            clean_col = col.lower().strip().replace(" ", "_").replace("-", "")
+            if clean_col in [a.replace("_", "") for a in aliases]:
+                header_map[target_key] = col
+                break
+
+    if "asset_name" not in header_map:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not detect an asset name or hostname column in CSV.",
+        )
+
+    existing_db_names = {a[0].lower().strip() for a in db.query(Asset.asset_name).all() if a[0]}
+    seen_in_csv = set()
+
+    rows: list[CsvRowValidation] = []
+    valid_count = 0
+    invalid_count = 0
+    dup_count = 0
+
+    for idx, raw_row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else "") for k, v in raw_row.items() if k}
+        name_val = row.get(header_map["asset_name"], "").strip()
+
+        row_errors = []
+        row_warnings = []
+        is_dup = False
+
+        if not name_val:
+            row_errors.append("Missing asset name")
+        else:
+            nl = name_val.lower()
+            if nl in seen_in_csv:
+                is_dup = True
+                dup_count += 1
+                row_warnings.append("Duplicate asset name inside this CSV")
+            elif nl in existing_db_names:
+                is_dup = True
+                dup_count += 1
+                row_warnings.append("Asset with this name already exists in inventory")
+            seen_in_csv.add(nl)
+
+        type_val = row.get(header_map.get("asset_type", ""), "").strip()
+        if not type_val and name_val:
+            nl = name_val.lower()
+            if any(k in nl for k in ["db", "database", "postgres", "sql"]):
+                type_val = "Database"
+            elif any(k in nl for k in ["router", "gateway", "switch"]):
+                type_val = "Router"
+            elif any(k in nl for k in ["firewall", "fw", "waf"]):
+                type_val = "Firewall"
+            elif any(k in nl for k in ["pc", "workstation", "laptop"]):
+                type_val = "Computer"
+            elif any(k in nl for k in ["iot", "sensor", "plc", "scada"]):
+                type_val = "IoT"
+            else:
+                type_val = "Server"
+
+        crit_raw = row.get(header_map.get("criticality", ""), "").strip().lower()
+        if "crit" in crit_raw or crit_raw in ["4", "tier 1"]:
+            crit_val = "Critical"
+        elif "high" in crit_raw or crit_raw in ["3", "tier 2"]:
+            crit_val = "High"
+        elif "low" in crit_raw or crit_raw in ["1", "tier 4"]:
+            crit_val = "Low"
+        else:
+            crit_val = "Medium"
+
+        exp_raw = row.get(header_map.get("exposure", ""), "").strip().lower()
+        if any(e in exp_raw for e in ["ext", "pub", "wan", "internet", "dmz"]):
+            exp_val = "External"
+        else:
+            exp_val = "Internal"
+
+        ip_val = row.get(header_map.get("ip_address", ""), "").strip() or None
+        os_val = row.get(header_map.get("operating_system", ""), "").strip() or None
+        dept_val = row.get(header_map.get("department", ""), "").strip() or "Operations"
+        env_val = row.get(header_map.get("environment", ""), "").strip() or "Production"
+
+        sw_raw = row.get(header_map.get("software", ""), "").strip()
+        sw_ver = row.get(header_map.get("software_version", ""), "").strip() or "1.0"
+        sw_items = [s.strip() for s in sw_raw.replace(";", ",").split(",") if s.strip()] if sw_raw else []
+
+        if not ip_val:
+            row_warnings.append("Missing host IP address")
+        if not os_val:
+            row_warnings.append("Missing operating system specification")
+
+        is_val = len(row_errors) == 0
+        if is_val:
+            valid_count += 1
+        else:
+            invalid_count += 1
+
+        rows.append(CsvRowValidation(
+            row_index=idx,
+            asset_name=name_val or f"Row-{idx}",
+            asset_type=type_val.title() if type_val else "Server",
+            ip_address=ip_val,
+            operating_system=os_val,
+            criticality=crit_val,
+            exposure=exp_val,
+            department=dept_val,
+            environment=env_val,
+            software=sw_items,
+            software_version=sw_ver,
+            is_valid=is_val,
+            is_duplicate=is_dup,
+            errors=row_errors,
+            warnings=row_warnings,
+        ))
+
+    return CsvValidationReport(
+        total_rows=len(rows),
+        valid_rows_count=valid_count,
+        invalid_rows_count=invalid_count,
+        duplicate_count=dup_count,
+        detected_headers=header_map,
+        rows=rows,
+    )
+
+
+@router.post("/import-validated", response_model=ImportReport)
+def import_validated_assets(
+    payload: ValidatedImportRequest,
+    db: Session = Depends(get_db),
+):
+    imported = 0
+    errors = []
+
+    for item in payload.rows:
+        try:
+            asset_dict = item.model_dump(exclude={"software"})
+            asset = Asset(**asset_dict)
+            for sw in item.software:
+                asset.software.append(AssetSoftware(**sw.model_dump()))
+            db.add(asset)
+            imported += 1
+        except Exception as e:
+            errors.append(f"Error importing {item.asset_name}: {str(e)}")
 
     db.commit()
     return ImportReport(imported=imported, failed=len(errors), errors=errors)

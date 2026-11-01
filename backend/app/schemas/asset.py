@@ -65,3 +65,36 @@ class ImportReport(BaseModel):
     failed: int
     errors: list[str]
 
+
+
+# ── CSV Validation and Preview Schemas ────────────────────────────────────────
+
+class CsvRowValidation(BaseModel):
+    row_index: int
+    asset_name: str
+    asset_type: str
+    ip_address: Optional[str] = None
+    operating_system: Optional[str] = None
+    criticality: str
+    exposure: str
+    department: Optional[str] = None
+    environment: str = "Production"
+    software: list[str] = []
+    software_version: str = "1.0"
+    is_valid: bool = True
+    is_duplicate: bool = False
+    errors: list[str] = []
+    warnings: list[str] = []
+
+
+class CsvValidationReport(BaseModel):
+    total_rows: int
+    valid_rows_count: int
+    invalid_rows_count: int
+    duplicate_count: int
+    detected_headers: dict[str, str]
+    rows: list[CsvRowValidation]
+
+
+class ValidatedImportRequest(BaseModel):
+    rows: list[AssetCreate]

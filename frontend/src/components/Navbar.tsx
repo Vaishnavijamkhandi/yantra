@@ -1,30 +1,39 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getStoredUser, logout } from "../services/api";
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const user = getStoredUser();
 
-  const navLink = (to: string, label: string) => {
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  const navLink = (to: string, label: string, icon: string) => {
     const isActive = pathname === to || (to !== "/" && pathname.startsWith(to));
     return (
       <Link
         to={to}
-        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
           isActive
-            ? "bg-[#800020] text-white shadow-xs"
-            : "text-stone-700 hover:text-[#800020] hover:bg-[#ede5d8]"
+            ? "bg-[#800020] text-white shadow-xs font-bold"
+            : "text-stone-700 hover:text-[#800020] hover:bg-[#f5f0e6]"
         }`}
       >
-        {label}
+        <span>{icon}</span>
+        <span>{label}</span>
       </Link>
     );
   };
 
   return (
-    <nav className="bg-[#f5f0e6] border-b border-[#e5ded0] sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-95 transition-opacity">
-          {/* Maroon Emblem */}
-          <div className="w-8 h-8 rounded-lg bg-[#800020] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+    <nav className="bg-white/95 backdrop-blur-md border-b border-[#e5ded0] sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between">
+        {/* Brand */}
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-95 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-[#800020] border border-[#66001a] text-white flex items-center justify-center font-bold text-sm shadow-xs">
             🛡️
           </div>
 
@@ -34,26 +43,67 @@ export default function Navbar() {
                 CyberSentra
               </span>
               <span className="text-stone-400 font-mono text-xs">/</span>
-              <span className="text-xs font-bold text-stone-800">
-                Risk Platform
+              <span className="text-[11px] font-bold text-stone-700 font-mono uppercase tracking-wider">
+                Enterprise Command
               </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-600" title="Active Platform Telemetry" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Operational" />
             </div>
-            <span className="text-[10px] text-stone-500 font-medium tracking-wide uppercase">
-              Critical Infrastructure Assessment &amp; Remediation
+            <span className="text-[9px] text-stone-500 font-medium tracking-wide uppercase">
+              Critical Infrastructure Cyber-Risk Prioritization
             </span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          {navLink("/", "Dashboard")}
-          {navLink("/assets", "Assets")}
-          {navLink("/gaps", "Gap Analysis")}
-          {navLink("/vulnerabilities", "CVE Intel")}
-          {navLink("/assessment", "Assessment")}
-          {navLink("/infrastructure", "Infrastructure Map")}
-          {navLink("/ml", "Risk Prediction")}
+        {/* 7 Locked Navigation Sections */}
+        <div className="hidden lg:flex items-center gap-1">
+          {navLink("/", "Overview", "📊")}
+          {navLink("/infrastructure", "Infrastructure", "🖥️")}
+          {navLink("/gaps", "Gap Analysis", "🔍")}
+          {navLink("/assessments", "Assessments", "⚡")}
+          {navLink("/remediation", "Risk & Remediation", "🛡️")}
+          {navLink("/reports", "Reports", "📑")}
+          {navLink("/settings", "Settings", "⚙️")}
         </div>
+
+        {/* User Session Profile & Logout */}
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="hidden sm:flex items-center gap-2 bg-[#faf7f2] border border-[#d6ccbe] rounded-lg px-2.5 py-1 text-xs">
+              <span className="w-2 h-2 rounded-full bg-[#800020]" />
+              <span className="text-stone-800 font-medium text-[11px] truncate max-w-[120px]">
+                {user.email}
+              </span>
+              <span
+                className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase ${
+                  user.role === "admin"
+                    ? "bg-[#800020]/10 text-[#800020] border border-[#800020]/20"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                }`}
+              >
+                {user.role}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-600 hover:text-[#800020] hover:bg-red-50 border border-[#d6ccbe] hover:border-red-200 transition cursor-pointer"
+          >
+            Sign Out ⎋
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile nav row */}
+      <div className="flex lg:hidden overflow-x-auto px-4 py-1.5 border-t border-[#e5ded0] gap-1 bg-[#faf7f2]">
+        {navLink("/", "Overview", "📊")}
+        {navLink("/infrastructure", "Infrastructure", "🖥️")}
+        {navLink("/gaps", "Gaps", "🔍")}
+        {navLink("/assessments", "Assessments", "⚡")}
+        {navLink("/remediation", "Remediation", "🛡️")}
+        {navLink("/reports", "Reports", "📑")}
+        {navLink("/settings", "Settings", "⚙️")}
       </div>
     </nav>
   );

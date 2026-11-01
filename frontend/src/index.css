@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: #fbf9f5;
-  color: #1c1917;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #fbf9f5;
+    color: #1c1917;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-/* Scrollbar styling for warm beige theme */
+/* Warm Beige and Maroon Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;

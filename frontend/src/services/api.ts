@@ -8,18 +8,107 @@ import type {
   AssessmentSummary,
   VulnerabilityStats,
   AssessmentDashboardSummary,
+  User,
+  TokenResponse,
+  CsvValidationReport,
+  ReportsSummary,
+  ActionPlanProfile,
+  DependencyImpact,
+  InfrastructureMap,
+  InfrastructureGap,
+  GapSummary,
+  GapAnalysisReport,
+  RiskSummary,
+  RiskAssessment,
+  DepartmentRisk,
+  AssessmentFleetReport,
 } from "../types/asset";
 
-const API_URL = "http://127.0.0.1:8000";
+export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Auth Storage & Headers ─────────────────────────────────────────────────
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem("cybersentra_token");
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem("cybersentra_token", token);
+}
+
+export function removeAuthToken(): void {
+  localStorage.removeItem("cybersentra_token");
+  localStorage.removeItem("cybersentra_user");
+}
+
+export function getStoredUser(): User | null {
+  const u = localStorage.getItem("cybersentra_user");
+  if (!u) return null;
+  try {
+    return JSON.parse(u);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: User): void {
+  localStorage.setItem("cybersentra_user", JSON.stringify(user));
+}
+
+function authHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// ── Helper ─────────────────────────────────────────────────────────────────
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+    if (res.status === 401) {
+      removeAuthToken();
+    }
+    const err = await res.json().catch(() => ({ detail: "Request failed" }));
     throw new Error(err.detail ?? "Request failed");
   }
   return res.json();
+}
+
+// ── Authentication ─────────────────────────────────────────────────────────
+
+export async function login(email: string, password: string): Promise<TokenResponse> {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await handleResponse<TokenResponse>(res);
+  setAuthToken(data.access_token);
+  setStoredUser(data.user);
+  return data;
+}
+
+export async function getCurrentUser(): Promise<User> {
+  const res = await fetch(`${API_URL}/api/auth/me`, {
+    headers: authHeaders(),
+  });
+  const user = await handleResponse<User>(res);
+  setStoredUser(user);
+  return user;
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+  } finally {
+    removeAuthToken();
+  }
 }
 
 // ── Assets ─────────────────────────────────────────────────────────────────
@@ -39,34 +128,44 @@ export async function getAssets(params?: {
   if (params?.environment) query.set("environment", params.environment);
 
   const qs = query.toString();
-  const res = await fetch(qs ? `${API_URL}/api/assets/?${qs}` : `${API_URL}/api/assets/`);
+  const res = await fetch(qs ? `${API_URL}/api/assets/?${qs}` : `${API_URL}/api/assets/`, {
+    headers: authHeaders(),
+  });
   return handleResponse<Asset[]>(res);
 }
 
 export async function getAsset(id: number): Promise<Asset> {
-  const res = await fetch(`${API_URL}/api/assets/${id}`);
+  const res = await fetch(`${API_URL}/api/assets/${id}`, {
+    headers: authHeaders(),
+  });
   return handleResponse<Asset>(res);
 }
 
 export async function getAssetDependencies(assetId: number): Promise<import("../types/asset").AssetDependency[]> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/dependencies`);
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/dependencies`, {
+    headers: authHeaders(),
+  });
   return handleResponse<import("../types/asset").AssetDependency[]>(res);
 }
 
-export async function getInfrastructureMap(): Promise<import("../types/asset").InfrastructureMap> {
-  const res = await fetch(`${API_URL}/api/assets/infrastructure-map`);
-  return handleResponse<import("../types/asset").InfrastructureMap>(res);
+export async function getInfrastructureMap(): Promise<InfrastructureMap> {
+  const res = await fetch(`${API_URL}/api/assets/infrastructure-map`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<InfrastructureMap>(res);
 }
 
-export async function getAssetImpact(assetId: number): Promise<import("../types/asset").DependencyImpact> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/impact`);
-  return handleResponse<import("../types/asset").DependencyImpact>(res);
+export async function getAssetImpact(assetId: number): Promise<DependencyImpact> {
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/impact`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<DependencyImpact>(res);
 }
 
 export async function createAsset(data: AssetCreate): Promise<Asset> {
   const res = await fetch(`${API_URL}/api/assets/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   return handleResponse<Asset>(res);
@@ -75,15 +174,40 @@ export async function createAsset(data: AssetCreate): Promise<Asset> {
 export async function updateAsset(id: number, data: AssetUpdate): Promise<Asset> {
   const res = await fetch(`${API_URL}/api/assets/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   return handleResponse<Asset>(res);
 }
 
 export async function deleteAsset(id: number): Promise<void> {
-  const res = await fetch(`${API_URL}/api/assets/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_URL}/api/assets/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   return handleResponse<void>(res);
+}
+
+// ── CSV Upload & Row Validation ─────────────────────────────────────────────
+
+export async function validateCsv(file: File): Promise<CsvValidationReport> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_URL}/api/assets/validate-csv`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+  return handleResponse<CsvValidationReport>(res);
+}
+
+export async function importValidatedAssets(rows: AssetCreate[]): Promise<ImportReport> {
+  const res = await fetch(`${API_URL}/api/assets/import-validated`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ rows }),
+  });
+  return handleResponse<ImportReport>(res);
 }
 
 export async function importAssets(file: File): Promise<ImportReport> {
@@ -91,226 +215,184 @@ export async function importAssets(file: File): Promise<ImportReport> {
   formData.append("file", file);
   const res = await fetch(`${API_URL}/api/assets/import`, {
     method: "POST",
+    headers: authHeaders(),
     body: formData,
   });
   return handleResponse<ImportReport>(res);
 }
 
-// ── Phase 2: Vulnerabilities ─────────────────────────────────────────────────
+// ── Vulnerabilities & Assessments ──────────────────────────────────────────
 
 export async function getVulnerabilities(params?: {
   search?: string;
   severity?: string;
-  min_score?: number;
   limit?: number;
   offset?: number;
 }): Promise<Vulnerability[]> {
   const query = new URLSearchParams();
   if (params?.search) query.set("search", params.search);
   if (params?.severity) query.set("severity", params.severity);
-  if (params?.min_score !== undefined) query.set("min_score", params.min_score.toString());
   if (params?.limit) query.set("limit", params.limit.toString());
   if (params?.offset) query.set("offset", params.offset.toString());
 
   const qs = query.toString();
-  const res = await fetch(qs ? `${API_URL}/api/vulnerabilities/?${qs}` : `${API_URL}/api/vulnerabilities/`);
+  const res = await fetch(`${API_URL}/api/vulnerabilities/${qs ? `?${qs}` : ""}`, {
+    headers: authHeaders(),
+  });
   return handleResponse<Vulnerability[]>(res);
 }
 
 export async function getVulnerabilityStats(): Promise<VulnerabilityStats> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/stats`);
+  const res = await fetch(`${API_URL}/api/vulnerabilities/stats`, {
+    headers: authHeaders(),
+  });
   return handleResponse<VulnerabilityStats>(res);
 }
 
-export async function seedVulnerabilities(): Promise<{ inserted: number; updated: number; total: number }> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/seed`, {
-    method: "POST",
+export async function getAssessmentDashboardSummary(): Promise<AssessmentDashboardSummary> {
+  const res = await fetch(`${API_URL}/api/assessment/dashboard`, {
+    headers: authHeaders(),
   });
-  return handleResponse<{ inserted: number; updated: number; total: number }>(res);
-}
-
-export async function syncNvdVulnerabilities(keywords: string[] = [], maxPerKeyword: number = 50): Promise<{
-  inserted: number;
-  updated: number;
-  skipped: number;
-  keywords_synced: number;
-}> {
-  const res = await fetch(`${API_URL}/api/vulnerabilities/sync`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ keywords, max_per_keyword: maxPerKeyword }),
-  });
-  return handleResponse(res);
+  return handleResponse<AssessmentDashboardSummary>(res);
 }
 
 export async function runAssessment(assetIds?: number[]): Promise<AssessmentSummary> {
   const res = await fetch(`${API_URL}/api/assessment/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ asset_ids: assetIds ?? null }),
   });
   return handleResponse<AssessmentSummary>(res);
 }
 
-export async function getAssessmentResults(params?: {
+export async function getAssetVulnerabilities(assetId: number): Promise<AssetVulnerability[]> {
+  const res = await fetch(`${API_URL}/api/assessment/asset/${assetId}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<AssetVulnerability[]>(res);
+}
+
+export async function getAllAssetVulnerabilities(params?: number | {
   asset_id?: number;
   severity?: string;
   limit?: number;
   offset?: number;
 }): Promise<AssetVulnerability[]> {
   const query = new URLSearchParams();
-  if (params?.asset_id) query.set("asset_id", params.asset_id.toString());
-  if (params?.severity) query.set("severity", params.severity);
-  if (params?.limit) query.set("limit", params.limit.toString());
-  if (params?.offset) query.set("offset", params.offset.toString());
-
-  const res = await fetch(`${API_URL}/api/assessment/results?${query.toString()}`);
+  if (typeof params === "number") {
+    query.set("limit", params.toString());
+  } else if (params && typeof params === "object") {
+    if (params.asset_id) query.set("asset_id", params.asset_id.toString());
+    if (params.severity && params.severity !== "ALL") query.set("severity", params.severity);
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.offset) query.set("offset", params.offset.toString());
+  }
+  const qs = query.toString();
+  const res = await fetch(`${API_URL}/api/assessment/results${qs ? `?${qs}` : ""}`, {
+    headers: authHeaders(),
+  });
   return handleResponse<AssetVulnerability[]>(res);
 }
 
-export async function getAssessmentSummary(): Promise<AssessmentDashboardSummary> {
-  const res = await fetch(`${API_URL}/api/assessment/summary`);
-  return handleResponse<AssessmentDashboardSummary>(res);
-}
-
-export async function getAssetVulnerabilities(assetId: number): Promise<AssetVulnerability[]> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/vulnerabilities`);
-  return handleResponse<AssetVulnerability[]>(res);
-}
-
-
-// ── Phase 3 & Phase 4: Risk Assessment API ──────────────────────────────────
-
-export async function getRiskSummary(): Promise<import("../types/asset").RiskSummary> {
-  const res = await fetch(`${API_URL}/api/risks/summary`);
-  return handleResponse<import("../types/asset").RiskSummary>(res);
-}
-
-export async function getLatestRisks(params?: {
-  department?: string;
-  risk_level?: string;
-  limit?: number;
-}): Promise<import("../types/asset").RiskAssessment[]> {
-  const query = new URLSearchParams();
-  if (params?.department) query.set("department", params.department);
-  if (params?.risk_level) query.set("risk_level", params.risk_level);
-  if (params?.limit) query.set("limit", params.limit.toString());
-
-  const res = await fetch(`${API_URL}/api/risks/?${query.toString()}`);
-  return handleResponse<import("../types/asset").RiskAssessment[]>(res);
-}
-
-export async function assessAssetRisk(
-  assetId: number
-): Promise<import("../types/asset").RiskAssessment> {
-  const res = await fetch(`${API_URL}/api/risks/assess/${assetId}`, {
-    method: "POST",
+export async function updateFindingStatus(
+  findingId: number,
+  status: "Open" | "In Progress" | "Resolved" | "Accepted Risk",
+  resolution_notes?: string,
+  remediated_by?: string
+): Promise<{ success: boolean; message: string; asset_id: number; status: string }> {
+  const res = await fetch(`${API_URL}/api/assessment/${findingId}/status`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ status, resolution_notes, remediated_by }),
   });
-  return handleResponse<import("../types/asset").RiskAssessment>(res);
-}
-
-export async function assessAllRisks(): Promise<import("../types/asset").AssessAllReport> {
-  const res = await fetch(`${API_URL}/api/risks/assess-all`, {
-    method: "POST",
-  });
-  return handleResponse<import("../types/asset").AssessAllReport>(res);
-}
-
-export async function getDepartmentRisks(): Promise<import("../types/asset").DepartmentRisk[]> {
-  const res = await fetch(`${API_URL}/api/risks/departments`);
-  return handleResponse<import("../types/asset").DepartmentRisk[]>(res);
-}
-
-export async function getAssetRiskHistory(
-  assetId: number
-): Promise<import("../types/asset").RiskAssessment[]> {
-  const res = await fetch(`${API_URL}/api/risks/asset/${assetId}/history`);
-  return handleResponse<import("../types/asset").RiskAssessment[]>(res);
-}
-
-// ── ML API calls ──────────────────────────────────────────────────────────────
-
-export async function getMLStatus() {
-  const r = await fetch(`${API_URL}/api/ml/status`);
-  if (!r.ok) throw new Error("ML status fetch failed");
-  return r.json();
-}
-
-export async function getMLInsights() {
-  const r = await fetch(`${API_URL}/api/ml/insights`);
-  if (!r.ok) throw new Error("ML insights fetch failed");
-  return r.json();
-}
-
-export async function getMLModelCards() {
-  const r = await fetch(`${API_URL}/api/ml/model-cards`);
-  if (!r.ok) throw new Error("ML model cards fetch failed");
-  return r.json();
-}
-
-export async function loadEPSS() {
-  const r = await fetch(`${API_URL}/api/ml/epss/load`, { method: "POST" });
-  if (!r.ok) throw new Error("EPSS load trigger failed");
-  return r.json();
-}
-
-export async function trainAnomaly() {
-  const r = await fetch(`${API_URL}/api/ml/train/anomaly`, { method: "POST" });
-  if (!r.ok) throw new Error("Anomaly training trigger failed");
-  return r.json();
-}
-
-export async function trainSupervised() {
-  const r = await fetch(`${API_URL}/api/ml/train/supervised`, { method: "POST" });
-  if (!r.ok) throw new Error("Supervised training trigger failed");
-  return r.json();
-}
-
-
-// ── 3-Part Action Profile APIs ───────────────────────────────────────────────
-
-export async function getActionPlan(
-  cveId: string,
-  assetId?: number,
-  software?: string
-): Promise<import("../types/asset").ActionPlanProfile> {
-  const query = new URLSearchParams();
-  if (assetId) query.set("asset_id", assetId.toString());
-  if (software) query.set("software", software);
-
-  const res = await fetch(`${API_URL}/api/vulnerabilities/${cveId}/action-plan?${query.toString()}`);
-  return handleResponse<import("../types/asset").ActionPlanProfile>(res);
+  return handleResponse<{ success: boolean; message: string; asset_id: number; status: string }>(res);
 }
 
 export async function resolveFinding(
-  assetVulnId: number
+  assetVulnId: number,
+  notes?: string
 ): Promise<{ success: boolean; message: string; asset_id: number }> {
-  const res = await fetch(`${API_URL}/api/assessment/${assetVulnId}/resolve`, {
+  const query = notes ? `?notes=${encodeURIComponent(notes)}` : "";
+  const res = await fetch(`${API_URL}/api/assessment/${assetVulnId}/resolve${query}`, {
     method: "POST",
+    headers: authHeaders(),
   });
   return handleResponse<{ success: boolean; message: string; asset_id: number }>(res);
 }
 
-export async function quarantineAsset(
-  assetId: number
-): Promise<{ success: boolean; message: string; asset_id: number; environment: string }> {
-  const res = await fetch(`${API_URL}/api/assets/${assetId}/quarantine`, {
-    method: "POST",
+export async function getActionPlanProfile(
+  cveId: string,
+  assetId?: number,
+  software?: string
+): Promise<ActionPlanProfile> {
+  const query = new URLSearchParams();
+  if (assetId) query.set("asset_id", assetId.toString());
+  if (software) query.set("software", software);
+
+  const res = await fetch(`${API_URL}/api/vulnerabilities/${cveId}/action-plan?${query.toString()}`, {
+    headers: authHeaders(),
   });
-  return handleResponse<{ success: boolean; message: string; asset_id: number; environment: string }>(res);
+  return handleResponse<ActionPlanProfile>(res);
 }
 
+// ── Risks & Remediation Engine ─────────────────────────────────────────────
 
-// ── Infrastructure Gap Analysis ──────────────────────────────────────────────
+export async function getRiskSummary(): Promise<RiskSummary> {
+  const res = await fetch(`${API_URL}/api/risks/summary`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<RiskSummary>(res);
+}
 
-export async function runGapAnalysis(assetId?: number): Promise<import("../types/asset").GapAnalysisReport> {
+export async function getLatestRisks(): Promise<RiskAssessment[]> {
+  const res = await fetch(`${API_URL}/api/risks/latest`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<RiskAssessment[]>(res);
+}
+
+export async function getDepartmentRisks(): Promise<DepartmentRisk[]> {
+  const res = await fetch(`${API_URL}/api/risks/departments`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<DepartmentRisk[]>(res);
+}
+
+export async function assessAllRisks(): Promise<AssessmentFleetReport> {
+  const res = await fetch(`${API_URL}/api/risks/assess-all`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<AssessmentFleetReport>(res);
+}
+
+export async function assessAssetRisk(assetId: number): Promise<RiskAssessment> {
+  const res = await fetch(`${API_URL}/api/risks/assess/${assetId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<RiskAssessment>(res);
+}
+
+export async function seedVulnerabilities(): Promise<{ message: string; inserted: number }> {
+  const res = await fetch(`${API_URL}/api/risks/seed-vulnerabilities`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<{ message: string; inserted: number }>(res);
+}
+
+// ── Infrastructure Gap Analysis ────────────────────────────────────────────
+
+export async function runGapAnalysis(assetId?: number): Promise<GapAnalysisReport> {
   const query = new URLSearchParams();
   if (assetId) query.set("asset_id", assetId.toString());
   const qs = query.toString();
   const res = await fetch(`${API_URL}/api/gaps/analyze${qs ? `?${qs}` : ""}`, {
     method: "POST",
+    headers: authHeaders(),
   });
-  return handleResponse<import("../types/asset").GapAnalysisReport>(res);
+  return handleResponse<GapAnalysisReport>(res);
 }
 
 export async function getGaps(params?: {
@@ -321,7 +403,7 @@ export async function getGaps(params?: {
   search?: string;
   limit?: number;
   offset?: number;
-}): Promise<import("../types/asset").InfrastructureGap[]> {
+}): Promise<InfrastructureGap[]> {
   const query = new URLSearchParams();
   if (params?.severity && params.severity !== "ALL") query.set("severity", params.severity);
   if (params?.category && params.category !== "ALL") query.set("category", params.category);
@@ -332,29 +414,59 @@ export async function getGaps(params?: {
   if (params?.offset) query.set("offset", params.offset.toString());
 
   const qs = query.toString();
-  const res = await fetch(`${API_URL}/api/gaps/${qs ? `?${qs}` : ""}`);
-  return handleResponse<import("../types/asset").InfrastructureGap[]>(res);
+  const res = await fetch(`${API_URL}/api/gaps/${qs ? `?${qs}` : ""}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<InfrastructureGap[]>(res);
 }
 
-export async function getGapSummary(): Promise<import("../types/asset").GapSummary> {
-  const res = await fetch(`${API_URL}/api/gaps/summary`);
-  return handleResponse<import("../types/asset").GapSummary>(res);
-}
-
-export async function getGap(gapId: number): Promise<import("../types/asset").InfrastructureGap> {
-  const res = await fetch(`${API_URL}/api/gaps/${gapId}`);
-  return handleResponse<import("../types/asset").InfrastructureGap>(res);
+export async function getGapSummary(): Promise<GapSummary> {
+  const res = await fetch(`${API_URL}/api/gaps/summary`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<GapSummary>(res);
 }
 
 export async function updateGapStatus(
   gapId: number,
   status: "Open" | "In Review" | "Resolved" | "Accepted",
   notes?: string
-): Promise<import("../types/asset").InfrastructureGap> {
+): Promise<InfrastructureGap> {
   const res = await fetch(`${API_URL}/api/gaps/${gapId}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ status, notes }),
   });
-  return handleResponse<import("../types/asset").InfrastructureGap>(res);
+  return handleResponse<InfrastructureGap>(res);
+}
+
+// ── Reports ────────────────────────────────────────────────────────────────
+
+export async function getReportsSummary(): Promise<ReportsSummary> {
+  const res = await fetch(`${API_URL}/api/reports/summary`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<ReportsSummary>(res);
+}
+
+export function getReportDownloadUrl(): string {
+  return `${API_URL}/api/reports/download-pdf`;
+}
+
+
+// ── Assessment & Operational Exports ───────────────────────────────────────
+
+export const getAssessmentResults = getAllAssetVulnerabilities;
+export const getAssessmentSummary = getAssessmentDashboardSummary;
+export const getActionPlan = getActionPlanProfile;
+export const syncNvdVulnerabilities = seedVulnerabilities;
+
+export async function quarantineAsset(
+  assetId: number | string
+): Promise<{ success: boolean; message: string; asset_id: number | string; environment?: string }> {
+  const res = await fetch(`${API_URL}/api/assets/${assetId}/quarantine`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
 }

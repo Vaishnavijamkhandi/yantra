@@ -127,6 +127,7 @@ def get_assessment_results(
     return q.offset(offset).limit(limit).all()
 
 
+@assessment_router.get("/dashboard")
 @assessment_router.get("/summary")
 def assessment_summary(db: Session = Depends(get_db)):
     """Dashboard numbers for Phase 2."""
@@ -225,23 +226,70 @@ async def get_cve_action_plan(
     return profile
 
 
+from pydantic import BaseModel
+from typing import Optional, Literal
+
+
+class FindingStatusUpdate(BaseModel):
+    status: Literal["Open", "In Progress", "Resolved", "Accepted Risk"]
+    resolution_notes: Optional[str] = None
+    remediated_by: Optional[str] = None
+
+
+@assessment_router.patch("/{asset_vuln_id}/status")
+def update_finding_status(
+    asset_vuln_id: int,
+    payload: FindingStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update lifecycle status and resolution audit notes for a vulnerability finding."""
+    link = db.query(AssetVulnerability).filter(AssetVulnerability.id == asset_vuln_id).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Finding not found")
+
+    link.status = payload.status
+    link.resolution_notes = payload.resolution_notes
+    if payload.remediated_by:
+        link.remediated_by = payload.remediated_by
+    if payload.status == "Resolved":
+        link.resolved_at = datetime.now(timezone.utc)
+    else:
+        link.resolved_at = None
+
+    db.commit()
+    db.refresh(link)
+    cve_id = link.vulnerability.cve_id if link.vulnerability else "CVE"
+    return {
+        "success": True,
+        "message": f"Finding {cve_id} status updated to {payload.status}",
+        "asset_id": link.asset_id,
+        "status": link.status,
+        "resolved_at": link.resolved_at,
+    }
+
+
 @assessment_router.post("/{asset_vuln_id}/resolve")
 def resolve_asset_vulnerability(
     asset_vuln_id: int,
+    notes: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """Mark a detected finding as remediated/resolved and remove it from active risks."""
+    """Mark a detected finding as remediated/resolved while preserving audit history."""
     link = db.query(AssetVulnerability).filter(AssetVulnerability.id == asset_vuln_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Finding not found")
     cve_id = link.vulnerability.cve_id if link.vulnerability else "CVE"
     asset_id = link.asset_id
-    db.delete(link)
+    link.status = "Resolved"
+    link.resolved_at = datetime.now(timezone.utc)
+    if notes:
+        link.resolution_notes = notes
     db.commit()
     return {
         "success": True,
         "message": f"Successfully marked {cve_id} as remediated for Asset #{asset_id}!",
         "asset_id": asset_id,
+        "status": "Resolved",
     }
 
 

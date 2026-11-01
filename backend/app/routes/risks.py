@@ -82,6 +82,7 @@ def assess_all_assets_risk(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/latest", response_model=list[RiskAssessmentResponse])
 @router.get("/", response_model=list[RiskAssessmentResponse])
 def list_latest_risks(
     department: str | None = Query(default=None),

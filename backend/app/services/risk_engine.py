@@ -44,11 +44,15 @@ def calculate_asset_risk(asset: Asset, db: Session) -> dict:
     Computes a deterministic, explainable risk score (0-100) for a given asset.
     Accounts for compounding vulnerability counts, exploitability, network exposure,
     and clinical/mission criticality.
+    Only active (non-resolved) vulnerability findings contribute to risk scores.
     """
-    # 1. Fetch matched vulnerabilities
+    # 1. Fetch matched vulnerabilities (active, non-resolved findings)
     links = (
         db.query(AssetVulnerability)
-        .filter(AssetVulnerability.asset_id == asset.id)
+        .filter(
+            AssetVulnerability.asset_id == asset.id,
+            AssetVulnerability.status != "Resolved",
+        )
         .all()
     )
     vuln_ids = [link.vulnerability_id for link in links]
@@ -250,4 +254,3 @@ def assess_and_save_asset_risk(asset: Asset, db: Session) -> RiskAssessment:
     db.commit()
     db.refresh(assessment)
     return assessment
-

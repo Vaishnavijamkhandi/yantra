@@ -15,6 +15,7 @@ export interface Asset {
   operating_system?: string | null;
   criticality: string;
   exposure: string;
+  owner?: string | null;
   department?: string | null;
   environment: string;
   created_at: string;
@@ -116,6 +117,11 @@ export interface AssetVulnerability {
   matched_version?: string | null;
   match_method: string;
   assessed_at: string;
+  status?: string;
+  resolution_notes?: string | null;
+  remediated_by?: string | null;
+  resolved_at?: string | null;
+  asset?: Asset;
   vulnerability: Vulnerability;
 }
 
@@ -324,3 +330,68 @@ export interface GapAnalysisReport {
   existing_gaps_preserved: number;
   summary: GapSummary;
 }
+
+
+// ── Authentication Types ─────────────────────────────────────────────────────
+
+export interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  role: "admin" | "analyst";
+  is_active: boolean;
+  last_login?: string | null;
+  created_at: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+// ── CSV Validation & Row-level Preview Types ─────────────────────────────────
+
+export interface CsvRowValidation {
+  row_index: number;
+  asset_name: string;
+  asset_type: string;
+  ip_address?: string | null;
+  operating_system?: string | null;
+  criticality: string;
+  exposure: string;
+  owner?: string | null;
+  department?: string | null;
+  environment: string;
+  software: string[];
+  software_version: string;
+  is_valid: boolean;
+  is_duplicate: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface CsvValidationReport {
+  total_rows: number;
+  valid_rows_count: number;
+  invalid_rows_count: number;
+  duplicate_count: number;
+  detected_headers: Record<string, string>;
+  rows: CsvRowValidation[];
+}
+
+// ── Reports Types ────────────────────────────────────────────────────────────
+
+export interface ReportsSummary {
+  status: string;
+  total_assets: number;
+  assessed_assets: number;
+  critical_risks: number;
+  detected_gaps: number;
+  matched_vulnerabilities: number;
+  report_format: string;
+  platform: string;
+}
+
+
+export type AssessmentFleetReport = AssessAllReport;
