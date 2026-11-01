@@ -8,12 +8,14 @@ import {
   assessAllRisks,
   assessAssetRisk,
   seedVulnerabilities,
+  getGapSummary,
 } from "../services/api";
 import type {
   Asset,
   RiskSummary,
   RiskAssessment,
   DepartmentRisk,
+  GapSummary,
 } from "../types/asset";
 
 const RISK_BADGE: Record<string, { bg: string; text: string; border: string }> = {
@@ -26,6 +28,7 @@ const RISK_BADGE: Record<string, { bg: string; text: string; border: string }> =
 export default function Dashboard() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [summary, setSummary] = useState<RiskSummary | null>(null);
+  const [gapSummary, setGapSummary] = useState<GapSummary | null>(null);
   const [risks, setRisks] = useState<RiskAssessment[]>([]);
   const [departments, setDepartments] = useState<DepartmentRisk[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,16 +47,18 @@ export default function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [assetsData, summaryData, risksData, deptData] = await Promise.all([
+      const [assetsData, summaryData, risksData, deptData, gapsData] = await Promise.all([
         getAssets().catch(() => []),
         getRiskSummary().catch(() => null),
         getLatestRisks().catch(() => []),
         getDepartmentRisks().catch(() => []),
+        getGapSummary().catch(() => null),
       ]);
       setAssets(assetsData);
       setSummary(summaryData);
       setRisks(risksData);
       setDepartments(deptData);
+      setGapSummary(gapsData);
     } finally {
       setLoading(false);
     }
@@ -203,6 +208,38 @@ export default function Dashboard() {
           >
             Filter Critical Threats →
           </button>
+        </div>
+      )}
+
+      {/* Infrastructure Gap Analysis Telemetry */}
+      {gapSummary && gapSummary.total_gaps > 0 && (
+        <div className="p-4 bg-[#f5f0e6] border border-[#e5ded0] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-lg bg-[#800020]/10 text-[#800020] border border-[#800020]/20 flex items-center justify-center font-bold text-sm">
+              🔍
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-stone-900">
+                  {gapSummary.total_gaps} Infrastructure Gaps Detected
+                </span>
+                {gapSummary.high_severity > 0 && (
+                  <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-red-100 text-red-800">
+                    {gapSummary.high_severity} HIGH SEVERITY
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Missing vendor details, unverified exposure, or unmapped dependencies affecting {gapSummary.affected_assets_count} asset(s). Clean fleet rate: {gapSummary.coverage_rate}%.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/gaps"
+            className="text-xs font-bold bg-white border border-[#e5ded0] hover:border-[#800020] text-[#800020] px-3.5 py-1.5 rounded-lg transition shrink-0"
+          >
+            Review Gaps Console →
+          </Link>
         </div>
       )}
 

@@ -98,3 +98,9 @@ class Asset(Base):
         back_populates="asset",
         cascade="all, delete-orphan",
     )
+
+    gaps: Mapped[list["InfrastructureGap"]] = relationship(  # noqa: F821
+        "InfrastructureGap",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )

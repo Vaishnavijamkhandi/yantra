@@ -299,3 +299,62 @@ export async function quarantineAsset(
   });
   return handleResponse<{ success: boolean; message: string; asset_id: number; environment: string }>(res);
 }
+
+
+// ── Infrastructure Gap Analysis ──────────────────────────────────────────────
+
+export async function runGapAnalysis(assetId?: number): Promise<import("../types/asset").GapAnalysisReport> {
+  const query = new URLSearchParams();
+  if (assetId) query.set("asset_id", assetId.toString());
+  const qs = query.toString();
+  const res = await fetch(`${API_URL}/api/gaps/analyze${qs ? `?${qs}` : ""}`, {
+    method: "POST",
+  });
+  return handleResponse<import("../types/asset").GapAnalysisReport>(res);
+}
+
+export async function getGaps(params?: {
+  severity?: string;
+  category?: string;
+  status?: string;
+  asset_id?: number;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<import("../types/asset").InfrastructureGap[]> {
+  const query = new URLSearchParams();
+  if (params?.severity && params.severity !== "ALL") query.set("severity", params.severity);
+  if (params?.category && params.category !== "ALL") query.set("category", params.category);
+  if (params?.status && params.status !== "ALL") query.set("status", params.status);
+  if (params?.asset_id) query.set("asset_id", params.asset_id.toString());
+  if (params?.search) query.set("search", params.search);
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.offset) query.set("offset", params.offset.toString());
+
+  const qs = query.toString();
+  const res = await fetch(`${API_URL}/api/gaps/${qs ? `?${qs}` : ""}`);
+  return handleResponse<import("../types/asset").InfrastructureGap[]>(res);
+}
+
+export async function getGapSummary(): Promise<import("../types/asset").GapSummary> {
+  const res = await fetch(`${API_URL}/api/gaps/summary`);
+  return handleResponse<import("../types/asset").GapSummary>(res);
+}
+
+export async function getGap(gapId: number): Promise<import("../types/asset").InfrastructureGap> {
+  const res = await fetch(`${API_URL}/api/gaps/${gapId}`);
+  return handleResponse<import("../types/asset").InfrastructureGap>(res);
+}
+
+export async function updateGapStatus(
+  gapId: number,
+  status: "Open" | "In Review" | "Resolved" | "Accepted",
+  notes?: string
+): Promise<import("../types/asset").InfrastructureGap> {
+  const res = await fetch(`${API_URL}/api/gaps/${gapId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, notes }),
+  });
+  return handleResponse<import("../types/asset").InfrastructureGap>(res);
+}

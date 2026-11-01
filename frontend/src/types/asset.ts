@@ -276,3 +276,51 @@ export interface ActionPlanProfile {
   what_if_not_cured: WhatIfNotCuredInfo;
   consequences: ConsequencesInfo;
 }
+
+
+// ── Infrastructure Gap Analysis Types ────────────────────────────────────────
+
+export interface InfrastructureGap {
+  id: number;
+  asset_id: number;
+  asset_name: string;
+  asset_type: string;
+  criticality: string;
+  exposure: string;
+  gap_title: string;
+  category: string;
+  gap_type: string;
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  reason: string;
+  recommendation: string;
+  status: "Open" | "In Review" | "Resolved" | "Accepted";
+  fingerprint: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GapSummary {
+  total_gaps: number;
+  high_severity: number;
+  medium_severity: number;
+  low_severity: number;
+  open_gaps: number;
+  in_review_gaps: number;
+  resolved_gaps: number;
+  accepted_gaps: number;
+  by_category: Record<string, number>;
+  by_severity: Record<string, number>;
+  affected_assets_count: number;
+  total_assets: number;
+  coverage_rate: number;
+  last_analyzed_at?: string | null;
+}
+
+export interface GapAnalysisReport {
+  message: string;
+  assets_analyzed: number;
+  total_gaps_detected: number;
+  new_gaps_created: number;
+  existing_gaps_preserved: number;
+  summary: GapSummary;
+}

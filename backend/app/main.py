@@ -10,6 +10,7 @@ from app.routes.vulnerabilities import assessment_router
 from app.routes.vulnerabilities import asset_vuln_router
 from app.routes.risks import router as risk_router
 from app.routes.ml import router as ml_router
+from app.routes.gaps import router as gap_router
 
 
 @asynccontextmanager
@@ -21,8 +22,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="CyberSentra — Enterprise Cyber-Risk Platform API",
-    description="Phase 1–3 (Asset Inventory, Vulnerability Assessment, Risk Engine) + Phase 7 (ML)",
-    version="4.0.0",
+    description="Phase 1–3 (Asset Inventory, Vulnerability Assessment, Risk Engine) + Infrastructure Gap Analysis + Phase 7 (ML)",
+    version="4.1.0",
     lifespan=lifespan,
 )
 
@@ -42,6 +43,7 @@ app.include_router(assessment_router)
 app.include_router(asset_vuln_router)
 app.include_router(risk_router)
 app.include_router(ml_router)
+app.include_router(gap_router)
 
 
 @app.get("/")
@@ -50,7 +52,7 @@ def health_check():
         "status": "running",
         "message": "CyberSentra Enterprise Cyber-Risk Platform API",
         "version": "3.0.0",
-        "phase": "Phase 1 + Phase 2 + Phase 3",
+        "phase": "Phase 1 (Gap Analysis) + Phase 2 + Phase 3 + Phase 7",
         "docs": "/docs",
     }
 

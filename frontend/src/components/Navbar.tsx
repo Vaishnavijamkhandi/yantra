@@ -31,7 +31,7 @@ export default function Navbar() {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-base font-black tracking-tight text-[#800020] font-mono">
-                CyberSaathi
+                CyberSentra
               </span>
               <span className="text-stone-400 font-mono text-xs">/</span>
               <span className="text-xs font-bold text-stone-800">
@@ -48,6 +48,7 @@ export default function Navbar() {
         <div className="flex items-center gap-1 sm:gap-2">
           {navLink("/", "Dashboard")}
           {navLink("/assets", "Assets")}
+          {navLink("/gaps", "Gap Analysis")}
           {navLink("/vulnerabilities", "CVE Intel")}
           {navLink("/assessment", "Assessment")}
           {navLink("/infrastructure", "Infrastructure Map")}
