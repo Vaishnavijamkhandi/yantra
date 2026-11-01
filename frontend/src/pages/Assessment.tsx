@@ -95,6 +95,46 @@ export default function Assessment() {
     }
   }
 
+  function handleAskGemini(finding: AssetVulnerability) {
+    const cve = finding.vulnerability.cve_id;
+    const assetId = finding.asset_id;
+    const software = finding.matched_software || "System component";
+    const version = finding.matched_version ? `v${finding.matched_version}` : "";
+    const cvss =
+      finding.vulnerability.cvss_score !== undefined && finding.vulnerability.cvss_score !== null
+        ? finding.vulnerability.cvss_score.toFixed(1)
+        : "N/A";
+    const severity = finding.vulnerability.severity || "HIGH";
+
+    const prompt = `Provide the immediate, technical mitigation plan for ${cve} detected on Asset #${assetId} running ${software} ${version}.
+Severity: ${severity} (CVSS ${cvss}).
+Vulnerability Description: ${finding.vulnerability.description || "Known vulnerability match"}
+
+Please provide:
+1. Exact vendor CLI remediation commands or configuration changes.
+2. Temporary compensating controls (firewall/WAF rules) if immediate downtime is not permitted.
+3. Verification and rollback steps to safely test in production.`;
+
+    const interactivePrompts = [
+      `Give me the exact rollback commands for ${cve} on ${software}`,
+      `Can we block ${cve} at the network firewall without restarting ${software}?`,
+      `Is ${cve} currently weaponized by ransomware in CISA KEV?`,
+      `Draft an executive incident ticket for Asset #${assetId}`,
+    ];
+
+    window.dispatchEvent(
+      new CustomEvent("cybersentra:open-ai-copilot", {
+        detail: {
+          prompt,
+          cveId: cve,
+          assetId,
+          software,
+          interactivePrompts,
+        },
+      })
+    );
+  }
+
   async function handleQuarantine(assetId: number) {
     if (!window.confirm(`Isolate and quarantine Asset #${assetId} from internal network?`)) return;
     try {
@@ -294,16 +334,24 @@ export default function Assessment() {
 
                     {/* Action buttons */}
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleAskGemini(r)}
+                          className="bg-[#800020] hover:bg-[#66001a] text-white font-bold px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
+                          title="Open interactive AI mitigation steps in Gemini Copilot"
+                        >
+                          <span>✨</span>
+                          <span>Assit Me</span>
+                        </button>
                         <button
                           onClick={() => handleOpenActionPlan(r)}
-                          className="bg-[#800020]/10 hover:bg-[#800020] text-[#800020] hover:text-white border border-[#800020]/30 font-bold px-3 py-1 rounded-lg text-xs transition cursor-pointer"
+                          className="bg-[#faf7f2] hover:bg-stone-200 text-stone-800 border border-[#d6ccbe] font-bold px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
                         >
                           Remediation Plan →
                         </button>
                         <button
                           onClick={() => handleQuarantine(r.asset_id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer"
+                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer"
                         >
                           Isolate Host
                         </button>
@@ -345,12 +393,22 @@ export default function Assessment() {
                   {activeFinding.matched_version && ` (v${activeFinding.matched_version})`}
                 </p>
               </div>
-              <button
-                onClick={() => setActiveFinding(null)}
-                className="text-stone-500 hover:text-stone-900 text-lg font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleAskGemini(activeFinding)}
+                  className="px-3 py-1.5 bg-[#800020] hover:bg-[#66001a] text-white rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                  title="Open interactive AI mitigation steps in Gemini Copilot"
+                >
+                  <span>✨</span>
+                  <span>Consult Gemini AI</span>
+                </button>
+                <button
+                  onClick={() => setActiveFinding(null)}
+                  className="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold border border-[#d6ccbe] cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Success message */}
