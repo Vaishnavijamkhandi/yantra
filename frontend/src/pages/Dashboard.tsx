@@ -42,7 +42,76 @@ export default function Dashboard() {
 
   // Selected Asset for Slide-over Drawer
   const [selectedRisk, setSelectedRisk] = useState<RiskAssessment | null>(null);
-  const [simulatedRemediation, setSimulatedRemediation] = useState<boolean>(false);
+  const [simPatch, setSimPatch] = useState<boolean>(false);
+  const [simIsolate, setSimIsolate] = useState<boolean>(false);
+
+  // Computed What-If Simulated Factor Scores
+  const simMetrics = useMemo(() => {
+    if (!selectedRisk) return null;
+    const isSimulating = simPatch || simIsolate;
+    if (!isSimulating) {
+      return {
+        active: false,
+        severity: selectedRisk.severity_score,
+        exploitability: selectedRisk.exploitability_score,
+        exposure: selectedRisk.exposure_score,
+        criticality: selectedRisk.criticality_score,
+        score: selectedRisk.risk_score,
+        tier: selectedRisk.risk_level,
+        delta: 0,
+        pctReduction: 0,
+      };
+    }
+
+    // 1. Severity: when patched, all active CVEs are resolved -> drops to 0
+    const severity = simPatch ? 0 : selectedRisk.severity_score;
+
+    // 2. Exploitability: when patched, active threat vectors are closed -> baseline residual 15;
+    //    if not patched but network isolated -> drops by 35%
+    let exploitability = selectedRisk.exploitability_score;
+    if (simPatch) {
+      exploitability = 15;
+    } else if (simIsolate) {
+      exploitability = Math.max(20, Math.round(selectedRisk.exploitability_score * 0.65));
+    }
+
+    // 3. Exposure: if microsegmented / isolated -> drops to 10 (airgap/isolated segment)
+    const exposure = simIsolate ? 10 : selectedRisk.exposure_score;
+
+    // 4. Criticality: intrinsic to asset mission value -> preserved
+    const criticality = selectedRisk.criticality_score;
+
+    // Weighted risk score calculation (40% Sev, 20% Exploit, 20% Exp, 20% Crit)
+    const rawScore =
+      0.40 * severity +
+      0.20 * exploitability +
+      0.20 * exposure +
+      0.20 * criticality;
+    const score = Math.min(100, Math.max(5, Math.round(rawScore)));
+
+    let tier = "Low";
+    if (score >= 80) tier = "Critical";
+    else if (score >= 60) tier = "High";
+    else if (score >= 30) tier = "Medium";
+
+    const delta = selectedRisk.risk_score - score;
+    const pctReduction =
+      selectedRisk.risk_score > 0
+        ? Math.round((delta / selectedRisk.risk_score) * 100)
+        : 0;
+
+    return {
+      active: true,
+      severity,
+      exploitability,
+      exposure,
+      criticality,
+      score,
+      tier,
+      delta,
+      pctReduction,
+    };
+  }, [selectedRisk, simPatch, simIsolate]);
 
   async function loadData() {
     try {
@@ -470,7 +539,8 @@ export default function Dashboard() {
                       key={risk.id}
                       onClick={() => {
                         setSelectedRisk(risk);
-                        setSimulatedRemediation(false);
+                        setSimPatch(false);
+                        setSimIsolate(false);
                       }}
                       className="hover:bg-[#faf6f0] cursor-pointer transition border-b border-[#f0eae0]"
                     >
@@ -536,7 +606,8 @@ export default function Dashboard() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedRisk(risk);
-                            setSimulatedRemediation(false);
+                            setSimPatch(false);
+                            setSimIsolate(false);
                           }}
                           className="px-3 py-1 text-xs font-bold text-[#800020] hover:bg-[#800020] hover:text-white border border-[#800020]/30 rounded-lg transition"
                         >
@@ -586,20 +657,34 @@ export default function Dashboard() {
             {/* Score & Tier Banner */}
             <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e5ded0] flex items-center justify-between">
               <div>
-                <span className="text-xs text-stone-500 font-mono uppercase">Calculated Risk Score</span>
-                <div className="text-3xl font-bold text-[#800020] font-mono mt-0.5">
-                  {simulatedRemediation
-                    ? Math.round(selectedRisk.risk_score * 0.45)
-                    : selectedRisk.risk_score}
-                  <span className="text-xs font-normal text-stone-400 ml-1">/100</span>
+                <span className="text-xs text-stone-500 font-mono uppercase">
+                  {simMetrics?.active ? "Simulated Risk Score" : "Calculated Risk Score"}
+                </span>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <div className="text-3xl font-bold text-[#800020] font-mono">
+                    {simMetrics?.active ? simMetrics.score : selectedRisk.risk_score}
+                    <span className="text-xs font-normal text-stone-400 ml-1">/100</span>
+                  </div>
+                  {simMetrics?.active && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs line-through text-stone-400 font-mono">
+                        {selectedRisk.risk_score}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        ▼ -{simMetrics.delta} pts (-{simMetrics.pctReduction}%)
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs text-stone-500 font-mono uppercase">Risk Tier</span>
+                <span className="text-xs text-stone-500 font-mono uppercase">
+                  {simMetrics?.active ? "Simulated Tier" : "Risk Tier"}
+                </span>
                 <div className="mt-0.5">
                   <span
                     className={`px-3 py-1 rounded-md text-xs font-bold font-mono border ${
-                      simulatedRemediation
+                      simMetrics?.active
                         ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                         : (RISK_BADGE[selectedRisk.risk_level] || RISK_BADGE.Medium).bg +
                           " " +
@@ -608,7 +693,7 @@ export default function Dashboard() {
                           (RISK_BADGE[selectedRisk.risk_level] || RISK_BADGE.Medium).border
                     }`}
                   >
-                    {simulatedRemediation ? "Low (Remediated)" : selectedRisk.risk_level}
+                    {simMetrics?.active ? `Simulated ${simMetrics.tier}` : selectedRisk.risk_level}
                   </span>
                 </div>
               </div>
@@ -616,29 +701,87 @@ export default function Dashboard() {
 
             {/* Contributing Factor Breakdown */}
             <div>
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-700 mb-3">
-                Factor Contribution Breakdown (0–100)
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-700">
+                  Factor Contribution Breakdown (0–100)
+                </h4>
+                {simMetrics?.active && (
+                  <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Live Simulation Active
+                  </span>
+                )}
+              </div>
               <div className="space-y-3">
                 {[
-                  { label: "Vulnerability Severity (Weight 40%)", score: selectedRisk.severity_score, bar: "bg-[#800020]" },
-                  { label: "Threat Exploitability (Weight 20%)", score: selectedRisk.exploitability_score, bar: "bg-red-600" },
-                  { label: "Network Exposure (Weight 20%)", score: selectedRisk.exposure_score, bar: "bg-amber-600" },
-                  { label: "Operational Criticality (Weight 20%)", score: selectedRisk.criticality_score, bar: "bg-stone-500" },
-                ].map((factor) => (
-                  <div key={factor.label}>
-                    <div className="flex justify-between text-xs text-stone-700 mb-1">
-                      <span>{factor.label}</span>
-                      <span className="font-mono font-bold text-stone-900">{factor.score}</span>
+                  {
+                    label: "Vulnerability Severity (Weight 40%)",
+                    score: simMetrics?.active ? simMetrics.severity : selectedRisk.severity_score,
+                    origScore: selectedRisk.severity_score,
+                    bar: simMetrics?.active && simPatch ? "bg-emerald-600" : "bg-[#800020]",
+                    simulated: simMetrics?.active && simPatch,
+                  },
+                  {
+                    label: "Threat Exploitability (Weight 20%)",
+                    score: simMetrics?.active ? simMetrics.exploitability : selectedRisk.exploitability_score,
+                    origScore: selectedRisk.exploitability_score,
+                    bar: simMetrics?.active && (simPatch || simIsolate) ? "bg-emerald-600" : "bg-red-600",
+                    simulated: simMetrics?.active && (simPatch || simIsolate),
+                  },
+                  {
+                    label: "Network Exposure (Weight 20%)",
+                    score: simMetrics?.active ? simMetrics.exposure : selectedRisk.exposure_score,
+                    origScore: selectedRisk.exposure_score,
+                    bar: simMetrics?.active && simIsolate ? "bg-emerald-600" : "bg-amber-600",
+                    simulated: simMetrics?.active && simIsolate,
+                  },
+                  {
+                    label: "Operational Criticality (Weight 20%)",
+                    score: selectedRisk.criticality_score,
+                    origScore: selectedRisk.criticality_score,
+                    bar: "bg-stone-500",
+                    simulated: false,
+                    note: "Inherent",
+                  },
+                ].map((factor) => {
+                  const hasChanged = factor.simulated && factor.score !== factor.origScore;
+                  return (
+                    <div key={factor.label}>
+                      <div className="flex justify-between items-center text-xs text-stone-700 mb-1">
+                        <span>{factor.label}</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          {hasChanged && (
+                            <span className="line-through text-stone-400 text-[11px]">
+                              {factor.origScore}
+                            </span>
+                          )}
+                          <span
+                            className={`font-bold ${
+                              hasChanged ? "text-emerald-700" : "text-stone-900"
+                            }`}
+                          >
+                            {factor.score}
+                          </span>
+                          {hasChanged && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                              ▼ -{factor.origScore - factor.score}
+                            </span>
+                          )}
+                          {factor.note && (
+                            <span className="text-[10px] text-stone-400 ml-1">
+                              ({factor.note})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-full bg-[#f4efe6] h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${factor.bar}`}
+                          style={{ width: `${factor.score}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-[#f4efe6] h-2 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${factor.bar}`}
-                        style={{ width: `${factor.score}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -668,28 +811,115 @@ export default function Dashboard() {
             {/* What-If Remediation Simulator */}
             <div className="p-4 bg-[#f5f0e6] border border-[#d6ccbe] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-stone-900">
-                  What-If Remediation Simulation
-                </span>
-                <span className="text-[10px] bg-white border border-[#d6ccbe] text-stone-700 px-2 py-0.5 rounded font-mono">
-                  Predictive Impact
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-stone-900">
+                    What-If Remediation Simulation
+                  </span>
+                  <span className="text-[10px] bg-white border border-[#d6ccbe] text-stone-700 px-2 py-0.5 rounded font-mono font-bold">
+                    Predictive Twin
+                  </span>
+                </div>
+                {simMetrics?.active && (
+                  <button
+                    onClick={() => {
+                      setSimPatch(false);
+                      setSimIsolate(false);
+                    }}
+                    className="text-[11px] text-[#800020] hover:underline font-mono font-bold cursor-pointer"
+                  >
+                    ↺ Reset
+                  </button>
+                )}
               </div>
               <p className="text-xs text-stone-600">
-                Simulate the effect of applying recommended security patches to this asset.
+                Simulate the quantitative impact of vendor CVE patching and microsegmentation before rolling out changes to production.
               </p>
+
+              {/* Remediation Action Toggles */}
+              <div className="space-y-2 pt-1">
+                <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-[#e5ded0] cursor-pointer hover:border-[#800020]/40 transition">
+                  <input
+                    type="checkbox"
+                    checked={simPatch}
+                    onChange={(e) => setSimPatch(e.target.checked)}
+                    className="mt-0.5 accent-[#800020] cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-stone-900 block">
+                      ⚡ Apply Vendor Security Patch (Resolve Active CVEs)
+                    </span>
+                    <span className="text-[11px] text-stone-500">
+                      Reduces Vulnerability Severity to 0 and Threat Exploitability to residual baseline (15).
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-[#e5ded0] cursor-pointer hover:border-[#800020]/40 transition">
+                  <input
+                    type="checkbox"
+                    checked={simIsolate}
+                    onChange={(e) => setSimIsolate(e.target.checked)}
+                    className="mt-0.5 accent-[#800020] cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-stone-900 block">
+                      🛡️ Network Microsegmentation (Zero-Trust Enclave)
+                    </span>
+                    <span className="text-[11px] text-stone-500">
+                      Restricts ingress exposure score to 10 (Isolated segment) and dampens unpatched exploitability.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Fast Quick-Simulate Button */}
               <button
-                onClick={() => setSimulatedRemediation(!simulatedRemediation)}
-                className={`w-full py-2.5 text-xs font-mono font-bold rounded-lg transition cursor-pointer ${
-                  simulatedRemediation
-                    ? "bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
-                    : "bg-[#800020] hover:bg-[#66001a] text-white shadow-xs"
+                onClick={() => {
+                  if (simPatch && simIsolate) {
+                    setSimPatch(false);
+                    setSimIsolate(false);
+                  } else {
+                    setSimPatch(true);
+                    setSimIsolate(true);
+                  }
+                }}
+                className={`w-full py-2.5 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 shadow-xs ${
+                  simMetrics?.active
+                    ? "bg-emerald-700 hover:bg-emerald-800 text-white"
+                    : "bg-[#800020] hover:bg-[#66001a] text-white"
                 }`}
               >
-                {simulatedRemediation
-                  ? "✓ Remediation Simulated (Score -55%) — Reset"
-                  : "⚡ Simulate Vulnerability Patching"}
+                {simMetrics?.active ? (
+                  <>
+                    <span>✓</span>
+                    <span>
+                      Simulation Active: Risk Reduced by {simMetrics.pctReduction}% (Score {selectedRisk.risk_score} ➔ {simMetrics.score})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚡</span>
+                    <span>Simulate Full Remediation (Patch + Isolate)</span>
+                  </>
+                )}
               </button>
+
+              {/* Simulation Result Callout */}
+              {simMetrics?.active && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-1">
+                  <div className="font-bold text-emerald-900 font-mono flex items-center gap-1.5">
+                    <span>📊</span>
+                    <span>Predictive Impact Assessment</span>
+                  </div>
+                  <p className="text-emerald-800 leading-relaxed text-[11px]">
+                    {simPatch && simIsolate
+                      ? `Applying vendor patches while isolating the asset to a zero-trust enclave neutralizes all remote exploit pathways, cutting total risk by ${simMetrics.pctReduction}%. Residual score (${simMetrics.score}) accounts purely for intrinsic clinical/operational priority.`
+                      : simPatch
+                      ? `Vulnerability patching eliminates active CVE exploitation. Total asset risk drops from ${selectedRisk.risk_score} to ${simMetrics.score} points.`
+                      : "Microsegmentation confines asset exposure to the internal enclave, shielding it from external reconnaissance."}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Drawer Actions */}
