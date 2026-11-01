@@ -61,3 +61,20 @@ def test_column_aliases_coverage():
     assert "priority" in COLUMN_ALIASES["criticality"]
     assert "network_exposure" in COLUMN_ALIASES["exposure"]
 
+
+
+def test_csv_alias_matching_normalized():
+    def _norm(s: str) -> str:
+        return s.lower().strip().replace(" ", "").replace("_", "").replace("-", "")
+
+    test_headers = [
+        "asset_name",
+        "Asset Name",
+        "hostname",
+        "Host Name",
+        "device_name",
+        "host-name",
+    ]
+    norm_aliases = {_norm(a) for a in COLUMN_ALIASES["asset_name"]}
+    for h in test_headers:
+        assert _norm(h) in norm_aliases, f"Header '{h}' failed to match asset_name aliases"

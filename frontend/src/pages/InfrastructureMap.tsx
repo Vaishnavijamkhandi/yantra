@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { getAssessmentResults, getActionPlan, quarantineAsset, resolveFinding } from "../services/api";
+import { getAssessmentResults, getActionPlan, resolveFinding } from "../services/api";
 import type { AssetVulnerability, ActionPlanProfile } from "../types/asset";
 
 const SEVERITY_BADGES: Record<string, { bg: string; text: string; border: string }> = {
@@ -105,16 +105,6 @@ export default function InfrastructureMap() {
     navigator.clipboard.writeText(text);
     setCopiedCmd(true);
     setTimeout(() => setCopiedCmd(false), 2500);
-  }
-
-  async function handleQuarantine(assetId: number) {
-    try {
-      const res = await quarantineAsset(assetId);
-      setStatusNotification(res.message);
-      setTimeout(() => setStatusNotification(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Quarantine failed");
-    }
   }
 
   async function handleResolve(findingId: number) {
@@ -923,12 +913,6 @@ export default function InfrastructureMap() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleQuarantine(selectedFinding?.asset_id || 1)}
-                  className="bg-white hover:bg-stone-50 text-[#800020] border border-[#800020]/40 px-3 py-1.5 rounded-lg transition cursor-pointer font-bold"
-                >
-                  Quarantine Asset
-                </button>
                 <button
                   onClick={() => handleResolve(selectedFinding?.id || 1)}
                   className="bg-[#800020] hover:bg-[#66001a] text-white px-3 py-1.5 rounded-lg transition cursor-pointer font-bold"

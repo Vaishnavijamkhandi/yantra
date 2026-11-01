@@ -6,8 +6,7 @@ import {
   runAssessment,
   getActionPlan,
   resolveFinding,
-  quarantineAsset,
-} from "../services/api";
+  } from "../services/api";
 import type {
   AssetVulnerability,
   AssessmentDashboardSummary,
@@ -92,18 +91,6 @@ export default function Assessment() {
       setMessage(err instanceof Error ? err.message : "Failed to load action plan");
     } finally {
       setLoadingPlan(false);
-    }
-  }
-
-  async function handleQuarantine(assetId: number) {
-    if (!window.confirm(`Isolate and quarantine Asset #${assetId} from internal network?`)) return;
-    try {
-      const res = await quarantineAsset(assetId);
-      setActionSuccessMsg(`${res.message}`);
-      setMessage(`Asset #${assetId} is now quarantined.`);
-      await loadData();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Quarantine failed");
     }
   }
 
@@ -300,12 +287,6 @@ export default function Assessment() {
                           className="bg-[#800020]/10 hover:bg-[#800020] text-[#800020] hover:text-white border border-[#800020]/30 font-bold px-3 py-1 rounded-lg text-xs transition cursor-pointer"
                         >
                           Remediation Plan →
-                        </button>
-                        <button
-                          onClick={() => handleQuarantine(r.asset_id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer"
-                        >
-                          Isolate Host
                         </button>
                       </div>
                     </td>
@@ -548,12 +529,6 @@ export default function Assessment() {
             {/* Modal Footer Controls */}
             <div className="p-4 border-t border-[#e5ded0] bg-[#f5f0e6] flex items-center justify-between gap-3 font-mono text-xs">
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleQuarantine(activeFinding.asset_id)}
-                  className="bg-white hover:bg-stone-50 text-[#800020] border border-[#800020]/40 px-3 py-1.5 rounded-lg transition cursor-pointer font-bold"
-                >
-                  Isolate Host
-                </button>
                 <button
                   onClick={() => handleResolveFinding(activeFinding.id)}
                   className="bg-[#800020] hover:bg-[#66001a] text-white px-3 py-1.5 rounded-lg transition cursor-pointer font-bold"

@@ -274,14 +274,17 @@ async def import_assets(
     if not reader.fieldnames:
         raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or corrupted.")
 
-    # Match column aliases dynamically (case-insensitive and whitespace-stripped)
+    def _norm(s: str) -> str:
+        return s.lower().strip().replace(" ", "").replace("_", "").replace("-", "")
+
+    # Match column aliases dynamically (case-insensitive and punctuation/whitespace-stripped)
     raw_headers = list(reader.fieldnames)
     header_map = {}
 
     for target_key, aliases in COLUMN_ALIASES.items():
+        norm_aliases = {_norm(a) for a in aliases}
         for col in raw_headers:
-            clean_col = col.lower().strip().replace(" ", "_").replace("-", "")
-            if clean_col in [a.replace("_", "") for a in aliases]:
+            if _norm(col) in norm_aliases:
                 header_map[target_key] = col
                 break
 
