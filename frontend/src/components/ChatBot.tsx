@@ -37,14 +37,14 @@ export default function ChatBot() {
     if (!textToSend.trim() || loading) return;
 
     const userMessage: ChatMessage = { role: "user", content: textToSend.trim() };
-    const updatedHistory = [...messages, userMessage];
-    setMessages(updatedHistory);
+    const historyBeforeCurrent = messages.slice(1);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     try {
       // Send message to Gemini API backend
-      const response = await sendChatMessage(textToSend.trim(), updatedHistory.slice(1));
+      const response = await sendChatMessage(textToSend.trim(), historyBeforeCurrent);
       if (response.model) {
         setActiveModel(response.model);
       }
@@ -281,3 +281,4 @@ export default function ChatBot() {
     </div>
   );
 }
+

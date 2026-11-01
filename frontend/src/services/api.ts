@@ -490,7 +490,7 @@ export async function sendChatMessage(
 ): Promise<ChatResponse> {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ message, history, context }),
   });
   return handleResponse<ChatResponse>(res);

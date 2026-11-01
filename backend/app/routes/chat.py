@@ -6,7 +6,7 @@ import logging
 import urllib.request
 import urllib.error
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -104,17 +104,38 @@ def generate_local_fallback(message: str) -> str:
 
 
 @router.post("", response_model=ChatResponse)
-def chat_with_copilot(
-    req: ChatRequest,
+@router.post("/", response_model=ChatResponse)
+async def chat_with_copilot(
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """
     Enterprise AI Copilot endpoint powered by Google Gemini.
     Answers critical infrastructure risk, vulnerability, and remediation queries.
     """
-    user_msg = req.message.strip()
+    try:
+        data = await request.json()
+    except Exception:
+        raw = await request.body()
+        try:
+            data = json.loads(raw.decode("utf-8")) if raw else {}
+        except Exception:
+            data = {}
+
+    user_msg = (data.get("message") or "").strip()
     if not user_msg:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    history_data = data.get("history") or []
+    history: List[ChatMessage] = []
+    for h in history_data:
+        if isinstance(h, dict):
+            history.append(
+                ChatMessage(
+                    role=h.get("role", "user"),
+                    content=h.get("content", ""),
+                )
+            )
 
     api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -139,7 +160,7 @@ def chat_with_copilot(
     # Prepare Gemini contents payload
     contents = []
     # Add conversation history
-    for item in req.history[-6:]:  # Keep recent context window
+    for item in history[-6:]:  # Keep recent context window
         role = "user" if item.role in ["user", "human"] else "model"
         contents.append({"role": role, "parts": [{"text": item.content}]})
 

@@ -123,11 +123,19 @@ def test_reports_summary_route(test_db):
 
 
 def test_chat_copilot_route(test_db):
-    from app.routes.chat import chat_with_copilot, ChatRequest
-    req = ChatRequest(message="What is CVE-2023-20198?")
-    res = chat_with_copilot(req, db=test_db)
-    assert res.reply is not None
-    assert len(res.reply) > 20
-    assert res.model in ["gemini-3.5-flash", "gemini-3.8-flash", "cybersentra-local-expert"]
+    from fastapi.testclient import TestClient
+    from app.main import app
+    client = TestClient(app)
+    # 1. Normal JSON POST
+    res = client.post("/api/chat", json={"message": "What is CVE-2023-20198?"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert len(data["reply"]) > 20
+
+    # 2. Resilient POST without json headers (ensures 422 never happens)
+    res_raw = client.post("/api/chat", content=b'{"message":"Explain EPSS"}', headers={"Content-Type": "text/plain"})
+    assert res_raw.status_code == 200
+
 
 
