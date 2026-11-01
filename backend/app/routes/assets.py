@@ -253,6 +253,33 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db)):
     return {"message": f"Asset {asset_id} deleted"}
 
 
+# ── BULK DELETE ───────────────────────────────────────────────────────────────
+
+@router.delete("/bulk/delete", status_code=200)
+def bulk_delete_assets(ids: list[int], db: Session = Depends(get_db)):
+    """Delete multiple assets by ID in a single request.
+
+    Accepts a JSON body that is a plain array of integers, e.g. [1, 2, 3].
+    Returns counts of how many were found and deleted vs. not found.
+    """
+    if not ids:
+        raise HTTPException(status_code=400, detail="No asset IDs provided")
+    assets = db.query(Asset).filter(Asset.id.in_(ids)).all()
+    if not assets:
+        raise HTTPException(status_code=404, detail="None of the provided IDs were found")
+    deleted = len(assets)
+    for asset in assets:
+        db.delete(asset)
+    db.commit()
+    logger.info("🗑️ [BULK DELETE] Removed %d asset(s): ids=%s", deleted, ids)
+    not_found = len(ids) - deleted
+    return {
+        "deleted": deleted,
+        "not_found": not_found,
+        "message": f"Deleted {deleted} asset(s) successfully.",
+    }
+
+
 # ── CSV IMPORT ────────────────────────────────────────────────────────────────
 
 @router.post("/import", response_model=ImportReport)

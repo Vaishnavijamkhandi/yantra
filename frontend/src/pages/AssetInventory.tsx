@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAssets, deleteAsset } from "../services/api";
+import { getAssets, deleteAsset, bulkDeleteAssets } from "../services/api";
 import type { Asset } from "../types/asset";
 import AssetForm from "../components/AssetForm";
 import CsvUpload from "../components/CsvUpload";
@@ -23,6 +23,11 @@ export default function AssetInventory() {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
 
+  // Multi-select state
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState("");
+
   // Filters
   const [search, setSearch] = useState("");
   const [filterCriticality, setFilterCriticality] = useState("");
@@ -40,6 +45,8 @@ export default function AssetInventory() {
         exposure: filterExposure || undefined,
       });
       setAssets(data);
+      // Clear any stale selections after reload
+      setSelected(new Set());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load assets");
     } finally {
@@ -49,6 +56,7 @@ export default function AssetInventory() {
 
   useEffect(() => { loadAssets(); }, [search, filterCriticality, filterType, filterExposure]);
 
+  // ── Single delete ─────────────────────────────────────────────────────────
   async function handleDelete(id: number, name: string) {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
@@ -56,6 +64,48 @@ export default function AssetInventory() {
       await loadAssets();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to delete asset");
+    }
+  }
+
+  // ── Selection helpers ─────────────────────────────────────────────────────
+  const allIds = assets.map((a) => a.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(allIds));
+    }
+  }
+
+  function toggleOne(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // ── Bulk delete ───────────────────────────────────────────────────────────
+  async function handleBulkDelete() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const noun = ids.length === 1 ? "1 asset" : `${ids.length} assets`;
+    if (!window.confirm(`Permanently delete ${noun}? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    setBulkMsg("");
+    try {
+      const result = await bulkDeleteAssets(ids);
+      setBulkMsg(`✅ ${result.message}`);
+      setTimeout(() => setBulkMsg(""), 4000);
+      await loadAssets();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bulk delete failed");
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -147,6 +197,33 @@ export default function AssetInventory() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar — only visible when rows are selected */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between bg-[#800020]/5 border border-[#800020]/20 rounded-xl px-5 py-3 animate-in fade-in duration-150">
+          <span className="text-xs font-mono font-bold text-[#800020]">
+            {selected.size} asset{selected.size !== 1 ? "s" : ""} selected
+          </span>
+          <div className="flex items-center gap-3">
+            {bulkMsg && (
+              <span className="text-xs font-mono text-emerald-700 font-semibold">{bulkMsg}</span>
+            )}
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs font-mono text-stone-500 hover:text-stone-800 cursor-pointer underline"
+            >
+              Deselect all
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-mono font-bold px-4 py-1.5 rounded-lg transition cursor-pointer"
+            >
+              {bulkDeleting ? "Deleting…" : `🗑 Delete ${selected.size} selected`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs font-mono">
@@ -166,6 +243,17 @@ export default function AssetInventory() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#f5f0e6] text-stone-600 font-mono uppercase tracking-wider border-b border-[#e5ded0]">
               <tr>
+                {/* Select-all checkbox */}
+                <th className="px-4 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                    onChange={toggleSelectAll}
+                    className="accent-[#800020] cursor-pointer w-3.5 h-3.5"
+                    title="Select all"
+                  />
+                </th>
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Asset Hostname</th>
                 <th className="px-4 py-3">Type</th>
@@ -178,56 +266,71 @@ export default function AssetInventory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0eae0] font-mono">
-              {assets.map((asset) => (
-                <tr key={asset.id} className="hover:bg-[#faf6f0] transition-colors border-b border-[#f0eae0]">
-                  <td className="px-4 py-3 text-stone-400">#{asset.id}</td>
-                  <td className="px-4 py-3 font-sans">
-                    <Link to={`/assets/${asset.id}`} className="text-stone-900 hover:text-[#800020] font-bold hover:underline">
-                      {asset.asset_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-stone-600">{asset.asset_type}</td>
-                  <td className="px-4 py-3 text-stone-700 text-xs">
-                    {asset.ip_address || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-stone-600 text-xs">
-                    {asset.operating_system || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-bold ${CRITICALITY_COLORS[asset.criticality] ?? "bg-[#f5f0e6] text-stone-700 border border-[#d6ccbe]"}`}>
-                      {asset.criticality}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-medium ${EXPOSURE_COLORS[asset.exposure] ?? "bg-[#f5f0e6] text-stone-700 border border-[#d6ccbe]"}`}>
-                      {asset.exposure}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-stone-700 font-sans">{asset.department || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        to={`/assets/${asset.id}`}
-                        className="text-[#800020] hover:underline text-xs font-bold"
-                      >
-                        Inspect →
+              {assets.map((asset) => {
+                const isChecked = selected.has(asset.id);
+                return (
+                  <tr
+                    key={asset.id}
+                    className={`hover:bg-[#faf6f0] transition-colors border-b border-[#f0eae0] ${isChecked ? "bg-[#800020]/4" : ""}`}
+                  >
+                    {/* Row checkbox */}
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleOne(asset.id)}
+                        className="accent-[#800020] cursor-pointer w-3.5 h-3.5"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-stone-400">#{asset.id}</td>
+                    <td className="px-4 py-3 font-sans">
+                      <Link to={`/assets/${asset.id}`} className="text-stone-900 hover:text-[#800020] font-bold hover:underline">
+                        {asset.asset_name}
                       </Link>
-                      <Link
-                        to={`/infrastructure?assetId=${asset.id}`}
-                        className="text-indigo-600 hover:underline text-xs font-medium"
-                      >
-                        Infrastructure
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(asset.id, asset.asset_name)}
-                        className="text-stone-400 hover:text-red-700 text-xs px-2 py-0.5 rounded transition cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-stone-600">{asset.asset_type}</td>
+                    <td className="px-4 py-3 text-stone-700 text-xs">
+                      {asset.ip_address || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-stone-600 text-xs">
+                      {asset.operating_system || "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-bold ${CRITICALITY_COLORS[asset.criticality] ?? "bg-[#f5f0e6] text-stone-700 border border-[#d6ccbe]"}`}>
+                        {asset.criticality}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-medium ${EXPOSURE_COLORS[asset.exposure] ?? "bg-[#f5f0e6] text-stone-700 border border-[#d6ccbe]"}`}>
+                        {asset.exposure}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-stone-700 font-sans">{asset.department || "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/assets/${asset.id}`}
+                          className="text-[#800020] hover:underline text-xs font-bold"
+                        >
+                          Inspect →
+                        </Link>
+                        <Link
+                          to={`/infrastructure?assetId=${asset.id}`}
+                          className="text-indigo-600 hover:underline text-xs font-medium"
+                        >
+                          Infrastructure
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(asset.id, asset.asset_name)}
+                          className="text-stone-400 hover:text-red-700 text-xs px-2 py-0.5 rounded transition cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

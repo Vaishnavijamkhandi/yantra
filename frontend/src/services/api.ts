@@ -109,6 +109,18 @@ export async function deleteAsset(id: number): Promise<void> {
   return handleResponse<void>(res);
 }
 
+export async function bulkDeleteAssets(
+  ids: number[]
+): Promise<{ deleted: number; not_found: number; message: string }> {
+  const res = await apiFetch(`${API_URL}/api/assets/bulk/delete`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(ids),
+  });
+  return handleResponse<{ deleted: number; not_found: number; message: string }>(res);
+}
+
+
 export async function importAssets(file: File): Promise<ImportReport> {
   const formData = new FormData();
   formData.append("file", file);
