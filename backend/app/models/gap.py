@@ -32,3 +32,4 @@ class InfrastructureGap(Base):
     )
 
     asset: Mapped["Asset"] = relationship("Asset", back_populates="gaps")
+

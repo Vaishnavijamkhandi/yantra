@@ -556,3 +556,4 @@ def get_gap_summary(db: Session) -> dict[str, Any]:
         "coverage_rate": coverage_rate,
         "last_analyzed_at": latest_date,
     }
+

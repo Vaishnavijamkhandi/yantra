@@ -58,3 +58,4 @@ class GapAnalysisReport(BaseModel):
     new_gaps_created: int
     existing_gaps_preserved: int
     summary: GapSummaryResponse
+
